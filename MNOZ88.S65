@@ -1,0 +1,24 @@
+         .OPT NO LIST,OBJ
+         *=  $6000
+;DANE L1,L2
+;WYNIK WH*256+L1
+;MNOZENIE LICZB 8bit*8bit, wynik 16bit troche dluzsze niz w ksiazce Assem. 6502 ale zato szybsze.
+         ;   
+         LDX #8
+         LDA #0
+         CLC 
+PT0      ROR A
+         ROR L1
+         BCC B0
+         CLC 
+         ADC L2
+B0       DEX 
+         BNE PT0
+         ROR A
+         ROR L1
+         STA WH
+         RTS 
+WH       .BYTE 0
+L1       .BYTE 0
+L2       .BYTE 0
+	 .OPT LIST

@@ -1,0 +1,6 @@
+bugi:
+
+1. lsr a i inne jesli komentarz to sie wywala
+2. ,y strony zerowej kompiluje jak nie dla strony zerowej , zawsze 16bit adres,
+3. (,x) (),y
+

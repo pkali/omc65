@@ -1,0 +1,751 @@
+<html>
+<head>
+<title>Atari "Sally" (6502) Instruction Set</title>
+</head>
+
+<h1><center><b>Atari "Sally" (6502) Instruction Set</b></center></h1>
+
+<hr width="75%">
+
+<h2><b>Instruction Descriptions</b> (listed alphabetically):</h2>
+
+<table border cellpadding=5 width="100%">
+<tr align="center">
+<td width="15%"><b>MNEMONIC</b></td>
+<td width="50%"><b>OPERATION</b></td>
+<td width="5%"><b>N</b></td>
+<td width="5%"><b>Z</b></td>
+<td width="5%"><b>C</b></td>
+<td width="5%"><b>I</b></td>
+<td width="5%"><b>D</b></td>
+<td width="5%"><b>V</b></td></tr>
+<tr align="center">
+<td>ADC</td>
+<td align="left">A' = A + M + C <sup> 1</sup></td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>X</td></tr>
+<tr align="center">
+<td>ANC<sup> *</sup></td>
+<td align="left">A' = A /\ M</td>
+<td>X</td>
+<td>X</td>
+<td>A'<sub>7</sub></td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>AND</td>
+<td align="left">A' = A /\ M</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>ARR<sup> *</sup></td>
+<td align="left">A' = ((A /\ M) &gt;&gt; 1) + (C * 80)</td>
+<td>X</td>
+<td>X</td>
+<td>A'<sub>6</sub></td>
+<td>.</td>
+<td>.</td>
+<td>X<sup> 4</sup></td></tr>
+<tr align="center">
+<td>ASL</td>
+<td align="left">M' = M &lt;&lt; 1</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>ASR<sup> *</sup></td>
+<td align="left">A' = (A /\ M) &gt;&gt; 1</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>ASX<sup> *</sup></td>
+<td align="left">X' = (X /\ A) - M</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>AX7<sup> *</sup></td>
+<td align="left">M' = A /\ X /\ 07</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>AXE<sup> *</sup></td>
+<td align="left">A' = (A \/ EE) /\ X /\ M</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>BCC</td>
+<td align="left">IF NOT C THEN PC' = PC + M</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>BCS</td>
+<td align="left">IF C THEN PC' = PC + M</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>BEQ</td>
+<td align="left">IF Z THEN PC' = PC + M</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>BIT</td>
+<td align="left">A /\ M</td>
+<td>M<sub>7</sub></td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>M<sub>6</sub></td></tr>
+<tr align="center">
+<td>BMI</td>
+<td align="left">IF N THEN PC' = PC + 1</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>BNE</td>
+<td align="left">IF NOT Z THEN PC' = PC + 1</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>BPL</td>
+<td align="left">IF NOT N THEN PC' = PC + 1</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>BRK</td>
+<td align="left">*(100 + S--) = PC<sub>15-8</sub><br>
+*(100 + S'--) = PC<sub>7-0</sub><br>
+*(100 + S''--) = P<br>
+PC' = *(FFFE)<br>
+P<sub>4</sub>' = 1</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>BVC</td>
+<td align="left">IF NOT V THEN PC' = PC + 1</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>BVS</td>
+<td align="left">IF V THEN PC' = PC + 1</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>CLC</td>
+<td align="left">C' = 0</td>
+<td>.</td>
+<td>.</td>
+<td>0</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>CLD</td>
+<td align="left">D' = 0</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>0</td>
+<td>.</td></tr>
+<tr align="center">
+<td>CLI</td>
+<td align="left">I' = 0</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>0</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>CLV</td>
+<td align="left">V' = 0</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>0</td></tr>
+<tr align="center">
+<td>CMP</td>
+<td align="left">A - M</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>CPX</td>
+<td align="left">X - M</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>CPY</td>
+<td align="left">Y - M</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>DCP<sup> *</sup></td>
+<td align="left">M' = M - 1<br>
+A - M'</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>DEC</td>
+<td align="left">M' = M - 1</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>DEX</td>
+<td align="left">X' = X - 1</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>DEY</td>
+<td align="left">Y' = Y - 1</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>EOR</td>
+<td align="left">A' = A \^/ M</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>INC</td>
+<td align="left">M' = M + 1</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>INX</td>
+<td align="left">X' = X + 1</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>INY</td>
+<td align="left">Y' = Y + 1</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>ISB<sup> *</sup></td>
+<td align="left">M' = M + 1<br>
+A' = A - M' - ~C <sup> 1</sup></td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td><A NAME="JAM"></A>JAM<sup> *</sup></td>
+<td align="left" colspan="7">These instructions never finish;
+the CPU is locked in an infinite cycle. 
+Coprocessors continue to function normally.</td></tr>
+<tr align="center">
+<td>JMP</td>
+<td align="left">PC = M<sub>short</sub></td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>JSR</td>
+<td align="left">*(100 + S--) = (PC - 1)<sub>15-8</sub><br>
+*(100 + S'--) = (PC - 1)<sub>7-0</sub> <sup> 2</sup><br>
+PC = M<sub>short</sub></td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>LAS<sup> *</sup></td>
+<td align="left">A' = S /\ M<br>
+S' = S /\ M<br>
+X' = S /\ M</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>LAX<sup> *</sup></td>
+<td align="left">A' = M<br>
+X' = M</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>LDA</td>
+<td align="left">A' = M</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>LDX</td>
+<td align="left">X' = M</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>LDY</td>
+<td align="left">Y' = M</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>LSR</td>
+<td align="left">M' = M &gt;&gt; 1</td>
+<td>0</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>NOP</td>
+<td align="left">Nothing is done</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>ORA</td>
+<td align="left">A' = A \/ M</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>PHA</td>
+<td align="left">*(100 + S--) = A</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>PHP</td>
+<td align="left">*(100 + S--) = P</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>PLA</td>
+<td align="left">A' = *(100 + ++S)</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>PLP</td>
+<td align="left">P' = *(100 + ++S)</td>
+<td colspan="6">RESTORED</td></tr>
+<tr align="center">
+<td>RLA<sup> *</sup></td>
+<td align="left">M' = (M &lt;&lt; 1) + C<br>
+A' = A /\ M'</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>ROL</td>
+<td align="left">M' = (M &lt;&lt; 1) + C</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>ROR</td>
+<td align="left">M' = (M &gt;&gt; 1) + (C * 80)</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>RRA<sup> *</sup></td>
+<td align="left">M' = (M &gt;&gt; 1) + (C * 80)<br>
+A' = A + M' + C' <sup> 1 3</sup></td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>RTI</td>
+<td align="left">P' = *(100 + ++S)<br>
+PC<sub>7-0</sub> = *(100 + ++S) <sup> 2</sup><br>
+PC<sub>15-8</sub> = *(100 + ++S)</td>
+<td colspan="6">RESTORED</td></tr>
+<tr align="center">
+<td>RTS</td>
+<td align="left">PC<sub>7-0</sub>' = *(100 + ++S)<br>
+PC<sub>15-8</sub>' = *(100 + ++S) <sup> 2</sup><br>
+PC'' = PC' + 1</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>SAX<sup> *</sup></td>
+<td align="left">M' = A /\ X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>SBC</td>
+<td align="left">A' = A - M - ~C <sup> 1</sup></td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>SEC</td>
+<td align="left">C' = 1</td>
+<td>.</td>
+<td>.</td>
+<td>1</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>SED</td>
+<td align="left">D' = 1</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>1</td>
+<td>.</td></tr>
+<tr align="center">
+<td>SEI</td>
+<td align="left">I' = 1</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>1</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>SLO<sup> *</sup></td>
+<td align="left">M' = M &lt;&lt; 1<br>
+A' = A \/ M'</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>SRE<sup> *</sup></td>
+<td align="left">M' = M &gt;&gt; 1<br>
+A' = A \^/ M'</td>
+<td>X</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>STA</td>
+<td align="left">M' = A</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>STX</td>
+<td align="left">M' = X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>STY</td>
+<td align="left">M' = Y</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>SX7<sup> *</sup></td>
+<td align="left">M' = X /\ 07</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>SY7<sup> *</sup></td>
+<td align="left">M' = Y /\ 07</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>TAX</td>
+<td align="left">X' = A</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>TAY</td>
+<td align="left">Y' = A</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>TSX</td>
+<td align="left">X' = S</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>TXA</td>
+<td align="left">A' = X</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>TXS</td>
+<td align="left">S' = X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>TYA</td>
+<td align="left">A' = Y</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>XEA<sup> *</sup></td>
+<td align="left">A' = (A \/ EE) /\ M<br>
+X' = (A \/ EE) /\ M</td>
+<td>X</td>
+<td>X</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr>
+<tr align="center">
+<td>XS7<sup> *</sup></td>
+<td align="left">S' = A /\ X<br>
+M' = S' /\ 07</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td>
+<td>.</td></tr></table>
+
+<h3>Notes:</h3>
+
+<ul>
+<p><sup>*</sup> Undocumented instruction.  The behavior of these opcodes was
+observed on an Atari 800.  It may vary with other 6502-based CPU's.
+
+<p><sup>1</sup> In decimal mode, N and V are set after the high-order nibble
+is added or subtracted but before it is decimal-corrected, according to binary
+rules.  Z is always set according to binary mode, not decimal.  When
+decimal-correcting a nibble for addition, 6 is added if (nibble &gt;= A) \/ C',
+and C'' = C' \/ (nibble + 6 &gt;= 10).  Thus, F + F in decimal mode is 14, not
+24.  When decimal-correcting a nibble for subtraction, 6 is subtracted if ~C',
+and C'' = C' \/ (nibble - 6 &lt; 0).  Also, decimal correction can result in
+nibbles ranging from A-F; for example, C + D results in 19 before correction,
+1F after.
+
+<p><sup>2</sup> The value stored for the JSR operation is one byte <i>prior</i>
+to the address of the next instruction.  However, the value stored for
+interrupts is the exact address of the next instruction.
+
+<p><sup>3</sup> The carry bit is used twice in this operation: once for the
+rotate, and then the new value is used in the addition, creating the final
+value.
+
+<p><sup>4</sup> V is set according to the function: (A<sub>6</sub> /\
+M<sub>6</sub>) \^/ (A<sub>7</sub> /\ M<sub>7</sub>).
+</ul>
+
+<hr width="50%" align=left>
+
+<h2><a href="atari.html"><img src="back-atari.gif" alt="Back to Atari page"
+height=64 width=64 border=0 align=abscenter></a>
+<a href="atari.html">Back to Atari Technical Information page</a></h2>
+
+<hr>
+
+</body>
+</html>
