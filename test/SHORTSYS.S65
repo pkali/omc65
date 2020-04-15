@@ -1,0 +1,291 @@
+         .MACRO VDLI 
+         LDY # <%1
+         LDX # >%1
+         LDA #$C0
+         STY $0200
+         STX $0201
+         STA $D40E
+         .ENDM 
+         .MACRO VDL 
+         LDA # <%1
+         STA $0230
+         LDA # >%1
+         STA $0231
+         .ENDM 
+         .MACRO VMAIN 
+         LDY # <%1
+         LDX # >%1
+         LDA #%2
+         JSR $E45C
+         .ENDM 
+         .MACRO RAMON 
+         SEI 
+         LDA #$00
+         STA $D40E
+         LDA #$FE
+         STA $D301
+         .ENDM 
+         .MACRO RAMOFF 
+         LDA #$FF
+         STA $D301
+         LDA #$C0
+         STA $D40E
+         CLI 
+         .ENDM 
+         .MACRO STOP 
+@S       JMP @S
+         .ENDM 
+         .MACRO PHX 
+         TXA 
+         PHA 
+         .ENDM 
+         .MACRO PLX 
+         PLA 
+         TAX 
+         .ENDM 
+         .MACRO PHY 
+         TYA 
+         PHA 
+         .ENDM 
+         .MACRO PLY 
+         PLA 
+         TAY 
+         .ENDM 
+         .MACRO MOVE.L 
+         .IF %3<$0100
+           LDX #%3-1
+@MC        LDA %1,X
+           STA %2,X
+           DEX 
+           .IF %3>$7F
+             CPX #$FF
+             BNE @MC
+             .ELSE 
+             BPL @MC
+             .ENDIF 
+           .ENDIF 
+         .IF %3&$FF<>$00
+           .IF %3>$0100
+             LDA #$00
+             STA LI
+             STA LI+1
+?MO          LDA %1
+?MO1         STA %2
+             INC ?MO+1
+             BNE ?MO2
+             INC ?MO+2
+?MO2         INC ?MO1+1
+             BNE ?MO3
+             INC ?MO1+2
+?MO3         INC LI
+             BNE ?MO4
+             INC LI+1
+?MO4         LDA LI+1
+             CMP # >%3
+             BNE ?MO
+             LDA LI
+             CMP # <%3
+             BNE ?MO
+             LDA #$00
+             STA LI
+             STA LI+1
+             BEQ ?MO5
+LI           .WORD 0
+?MO5
+             .ENDIF 
+           .ELSE 
+           LDX # >%3
+           LDY #$00
+?MO        LDA %1,Y
+?MO1       STA %2,Y
+           INY 
+           BNE ?MO
+           INC ?MO+2
+           INC ?MO1+2
+           DEX 
+           BNE ?MO
+           .ENDIF 
+         .ENDM 
+         .MACRO VDEC 
+         DEC %1
+         LDA %1
+         CMP #$FF
+         BNE VD1
+         DEC %1+1
+VD1
+         .ENDM 
+;
+         .MACRO VINC 
+         INC %1
+         BNE IN0
+         INC %1+1
+IN0
+         .ENDM 
+         .MACRO DPOKE 
+         LDA # <%2
+         STA %1
+         LDA # >%2
+         STA %1+1
+         .ENDM 
+         .MACRO KEY 
+         PHA 
+CK1      LDA SKSTAT
+         AND #$04
+         BEQ CK1
+CK       LDA SKSTAT
+         AND #$04
+         BNE CK
+         PLA 
+         .ENDM 
+         .MACRO POKE 
+         LDA #%2
+         STA %1
+         .ENDM 
+         .MACRO WAIT 
+         LDA VCOUNT
+         STA WSYNC
+         STA WSYNC
+         STA WSYNC
+?WA      CMP VCOUNT
+         BNE ?WA
+         .ENDM 
+         .MACRO FILL 
+          DPOKE  ?FL+1,%1
+         LDY #$00
+         LDX # >[%2-%1]-$0100
+         LDA #%3
+?FL      STA %1,Y
+         INY 
+         BNE ?FL
+         INC ?FL+2
+         DEX 
+         BPL ?FL
+         .ENDM 
+         .MACRO VCMP 
+         LDA %1+1
+         CMP # >%2
+         BNE %3
+         LDA %1
+         CMP # <%2
+         BNE %3
+         .ENDM 
+         .MACRO MOVE.B 
+         LDA %1
+         STA %2
+         .ENDM 
+         .MACRO MOVE.C 
+         LDA %1
+         STA %2
+         LDA %1+1
+         STA %2+1
+         .ENDM 
+         .MACRO ICL 
+         INC %1
+         LDA %1
+         .ENDM 
+         .MACRO DCL 
+         DEC %1
+         LDA %1
+         .ENDM 
+;
+         .MACRO ADD.W 
+         LDA %1
+         CLC 
+         ADC %2
+         .IF %0=3
+           STA %3
+           .ELSE 
+           STA %2
+           .ENDIF 
+         LDA %1+1
+         ADC %2+1
+         .IF %0=3
+           STA %3+1
+           .ELSE 
+           STA %2+1
+           .ENDIF 
+         .ENDM 
+;
+         .MACRO ADD.Q 
+         .IF %2>$FF
+           LDA %1
+           CLC 
+           ADC # <%2
+           STA %1
+           LDA %1+1
+           ADC # >%2
+           STA %1+1
+           .ELSE 
+           LDA %1
+           CLC 
+           ADC #%2
+           STA %1
+           BCC ADQ0
+           INC %1+1
+ADQ0
+           .ENDIF 
+         .ENDM 
+         .MACRO POKEY 
+          POKE  $D208,0
+          POKE  $D20F,3
+         .ENDM 
+         .MACRO LBEQ 
+         BNE ?MO7
+         JMP %1
+?MO7
+         .ENDM 
+         .MACRO LBNE 
+         BEQ ?MO8
+         JMP %1
+?MO8
+         .ENDM 
+         .MACRO LBCS 
+         BCC ?MO9
+         JMP %1
+?MO9
+         .ENDM 
+         .MACRO LBCC 
+         BCS ?MO10
+         JMP %1
+?MO10
+         .ENDM 
+         .MACRO LBPL 
+         BMI ?MO11
+         JMP %1
+?MO11
+         .ENDM 
+         .MACRO LBMI 
+         BPL ?MO12
+         JMP %1
+?MO12
+         .ENDM 
+;етыка═
+SETVBV   =   $E45C
+XITVBV   =   $E462
+SYSVBV   =   $E45F
+WSYNC    =   $D40A
+HSCROL   =   $D404
+VSCROL   =   $D405
+NMIEN    =   $D40E
+IRQEN    =   $D20E
+KBGET    =   $F2FD
+CHBASE   =   $D409
+DMACTL   =   $D400
+DMACTLS  =   559
+RANDOM   =   $D20A
+AUDF1    =   $D200
+VCOUNT   =   $D40B
+CONSOL   =   $D01F
+PORTA    =   $D300
+PORTB    =   $D301
+KBCODE   =   $D209
+KBCODES  =   764
+TRIG0    =   $D010
+TRIG1    =   $D011
+SKSTAT   =   $D20F
+PMBASE   =   $D407
+HPOSP0   =   $D000
+PMCTL    =   $D01D
+GTIACTL  =   $D01B
+GTIACTLS =   $026F
+SIZEP0   =   $D008
