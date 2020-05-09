@@ -2089,7 +2089,7 @@ void include(int what) {
         error("include stack full");
         fclose(plik);
       } else {
-        pth = m_alloc(strlen(sciezka));
+        pth = m_alloc(strlen(sciezka) + 1);
         strcpy(pth, sciezka);
         filestack[fsp++] = source;
         fpthstack[fsp - 1] = filepath;
