@@ -30,6 +30,13 @@ long filelength(FILE *f) { // don't use that. Learn POSIX API
   return sz;
 }
 
+void strup(char *s) {
+  while (*s) {
+    *s = toupper(*s);
+    ++s;
+  }
+}
+
 struct mnem {
   char mnem[3];
   char mlen;
@@ -2065,15 +2072,17 @@ void include(int what) {
            c != crt && c != tab)
       col++;
     c = bufor[col];
-    bufor[col] = 0;
-    if ((plik = fopen(&bufor[firstchar], type)) == NULL) {
+    char *fname = alloca(col + 1 - firstchar);
+    strncpy(fname, &bufor[firstchar], col - firstchar);
+    fname[col - firstchar] = 0;
+    strup(fname);
+    if ((plik = fopen(fname, type)) == NULL) {
       /*error*/
       if (phase == 2)
         error("can't open file");
       bufor[col] = c;
       return;
     }
-    bufor[col] = c;
     switch (what) {
     case 0: /*include*/
       if (fsp == maxfnr) {
