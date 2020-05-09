@@ -1,3 +1,5 @@
+// compiled with gcc (Ubuntu 5.5.0-12ubuntu1~16.04) 5.5.0 20171010
+// gcc -x c  OMC_MAIN.C -o omc
 /*#define atariST*/
 #define buflen 120
 #define asem_col 19
@@ -14,61 +16,18 @@ char crt = 13, tab = '\t';
 #include <stdlib.h>
 #include <string.h>
 //#include <curses.h>
+#include <ctype.h>
 #include <fcntl.h>
+#include <stdint.h>
 #include <termios.h>
 #include <unistd.h>
 
-int kbhit(void) {
-  struct termios oldt, newt;
-  int ch;
-  int oldf;
-
-  tcgetattr(STDIN_FILENO, &oldt);
-  newt = oldt;
-  newt.c_lflag &= ~(ICANON | ECHO);
-  tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-  oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
-  fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
-
-  ch = getchar();
-
-  tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-  fcntl(STDIN_FILENO, F_SETFL, oldf);
-
-  if (ch != EOF) {
-    ungetc(ch, stdin);
-    return 1;
-  }
-
-  return 0;
-}
-
-char getch(void) {
-  char buf = 0;
-  struct termios old;
-  fflush(stdout);
-  if (tcgetattr(0, &old) < 0)
-    perror("tcsetattr()");
-  old.c_lflag &= ~ICANON;
-  old.c_lflag &= ~ECHO;
-  old.c_cc[VMIN] = 1;
-  old.c_cc[VTIME] = 0;
-  if (tcsetattr(0, TCSANOW, &old) < 0)
-    perror("tcsetattr ICANON");
-  if (read(0, &buf, 1) < 0)
-    perror("read()");
-  old.c_lflag |= ICANON;
-  old.c_lflag |= ECHO;
-  if (tcsetattr(0, TCSADRAIN, &old) < 0)
-    perror("tcsetattr ~ICANON");
-  return buf;
-}
-
-long filelength(const char *filpath) { // don't use that. Learn POSIX API
-  struct stat st;
-  if (stat(filpath, &st)) /*failure*/
-    return -1;            // when file does not exist or is not accessible
-  return (long)st.st_size;
+long filelength(FILE *f) { // don't use that. Learn POSIX API
+  long prev = ftell(f);
+  fseek(f, 0L, SEEK_END);
+  long sz = ftell(f);
+  fseek(f, prev, SEEK_SET); // go back to where we were
+  return sz;
 }
 
 struct mnem {
@@ -155,12 +114,12 @@ char mnem_hash_tab[0x200];
 */
 
 char line_bufor[buflen + 2], strbuf[buflen];
-char (*bufor)[]; /*wsk. bufor linii*/
+char *bufor; /*wsk. bufor linii*/
 
-unsigned int bptr; /* wsk. bajtu w buforze wyjsciowy */
-unsigned int buf_out_len;
+uint16_t bptr; /* wsk. bajtu w buforze wyjsciowy */
+uint16_t buf_out_len;
 
-int col;
+int16_t col;
 long line;
 int licz_list, char_out;
 int numcnt, page_cnt;
@@ -188,14 +147,14 @@ int phase;
 unsigned char localcnt;
 
 #define max_rept_block 0x2000
-unsigned int adres, beg_rept;
+uint16_t adres, beg_rept;
 int reptflg;
-unsigned int cnt_rept, rept_len;
+uint16_t cnt_rept, rept_len;
 char (*rept_buf)[];
 
 struct lab {
   char lenght, *gdzie;
-  unsigned int labvalue;
+  uint16_t labvalue;
   int def : 1;
   int dup : 1;     /*dup label indicator*/
   int ref : 1;     /*znacznik dla .REF*/
@@ -218,12 +177,13 @@ struct lab_list {
 void print_line(int mhead);
 void analizing(void);
 void putcode(void);
-void kb_wait(void);
 
 // void macro_analizing(struct macro *mptr);
 struct macro *is_macro(char *mname, int ile);
 /* spr. czy jest takie macro
  */
+
+void macro_analizing(struct macro *mptr);
 
 int inside_macro;
 /* znacznik czy jest. akt. asemblowany macrorozkaz
@@ -402,8 +362,8 @@ void error(char *text) {
       }
     }
     if (!err_num_only) {
-      fprintf(ferr, our5oft);
-      fprintf(ferr, "error list:\n");
+      fprintf(ferr, "%s", our5oft);
+      fprintf(ferr, "%s", "error list:\n");
     }
   }
 
@@ -417,22 +377,7 @@ void error(char *text) {
     fprintf(ferr, "FATAL ERROR - %s\n", text);
   else
     fprintf(ferr, " -ERROR! %s %s %ld: %s\n", filepath, "line", line_inc, text);
-  kb_wait();
-}
-
-void kb_wait(void) {
-  char c;
-
-  if (!kbhit())
-    return;
-  if ((c = getch()) == 's' || c == 'S') {
-    while ((!kbhit()) || (c = getch()) != 's' && c != 'S' && c != 27)
-      ;
-  }
-  if (c == 27) { /*ESC*/
-    fatal = 1;
-    error("user's break");
-  }
+  exit(1);
 }
 
 /*allokacja pamieci ze sprawdzeniem*/
@@ -447,10 +392,10 @@ void *m_alloc(size_t size) {
 }
 
 //#include "labels.h"
-int hash_it(char *co, int ile) {
+int16_t hash_it(char *co, int16_t ile) {
   /*Hashowanie stringu wskazanego przez co, o dlugosci ile
    */
-  int h;
+  int16_t h;
   h = 0;
   while (ile--) {
     h = h << 1;
@@ -459,7 +404,7 @@ int hash_it(char *co, int ile) {
   };
   return h & 0x07ff;
 }
-thesame(char *s1, char *s2, char ile)
+int thesame(char *s1, char *s2, char ile)
 /* porownywanie bez wzgledu na wielkosc liter, zwraca 1 gdy takie same */
 {
   register char i, c1, c2;
@@ -477,7 +422,7 @@ thesame(char *s1, char *s2, char ile)
   return 1;
 }
 
-void addlabel(char *eptr, char len, int hash, int labval, int def, int tmp)
+void addlabel(char *eptr, char len, int hash, int16_t labval, int def, int tmp)
 
 /* Dolanczanie nowej etykiety do listy
    def 1 jesli jest to defincja
@@ -522,7 +467,7 @@ void addlabel(char *eptr, char len, int hash, int labval, int def, int tmp)
   */
 }
 
-ref_label(char *eptr, char ile)
+int ref_label(char *eptr, char ile)
 /* sprawdza czy jest etykieta wskazywana przez eptr o dlug. ile
    jesli jest w pierwszej fazie to ustawia znaczn. ref i zwr. 1
    jesli jest w drugiej fazie do zwraca znaczn. ref.(0 lub 1)
@@ -550,7 +495,8 @@ ref_label(char *eptr, char ile)
   return 0; /*nie ma*/
 }
 
-is_label(char *eptr, char ile, int *value, int val, int def, int tmp)
+int is_label(char *eptr, char ile, int16_t *value, int16_t val, int def,
+             int tmp)
 
 /* sprawdza czy jest etykieta wskazywana przez eptr o dlug. ile
     -jesli nie ma to dolancza
@@ -681,7 +627,6 @@ void printlabels(void) {
   fprintf(flist, "\n defined labels:\n");
   cnt = 0;
   while (orderlist != NULL) {
-    kb_wait();
     if (!fatal) {
       memmove((void *)strbuf, (void *)orderlist->gdzie,
               (l = orderlist->lenght));
@@ -712,10 +657,10 @@ oblicza wartosc wyrazen z liczb typu int.
 */
 char os[40], hist[80];
 int nsp, osp, hsp;
-unsigned int ns[40];
+uint16_t ns[40];
 #define unarny(c) ((c) == '<' || (c) == '>' || (c) == '!' || (c) == '~')
 
-level(char j) {
+int level(char j) {
 
   switch (j) {
   case '<':
@@ -758,12 +703,12 @@ level(char j) {
    jest tak to zwraca 1 i jej wartosc poprzez wskaznik value
    jesli nie to zwraca 0
 */
-findlabel(int *j, int ile, int *value) {
+int findlabel(int16_t *j, int ile, int16_t *value) {
   char lablen, *beg;
 
   lablen = 1;
-  beg = &(*bufor)[(*j)++];
-  while (labtab[(*bufor)[(*j)]] && (*j) < ile) {
+  beg = &bufor[(*j)++];
+  while (labtab[bufor[(*j)]] && (*j) < ile) {
     (*j)++;
     lablen++;
   }
@@ -771,10 +716,10 @@ findlabel(int *j, int ile, int *value) {
   /*0-odwolanie do etykiety, w macroinsr. kazda jest tymczasowa */
 }
 
-char getoperator(int *j) {
+char getoperator(int16_t *j) {
   char c, *bf;
 
-  bf = &(*bufor)[(*j)];
+  bf = &bufor[(*j)];
   if ((*bf) == '.') {
     if (thesame(bf + 1, "or", 2)) {
       (*j) += 3;
@@ -827,64 +772,64 @@ char getoperator(int *j) {
   case '/':
   case '[':
   case ']':
-    return (*bufor)[(*j)++];
+    return bufor[(*j)++];
   }
   return 0; /*zly operator */
 }
 
-paramnr(int *j, int ile, int *nr) {
+int paramnr(int16_t *j, int ile, int16_t *nr) {
   /* odczytuje nr. parametru macra i zwraca poprzez wsk. nr
      zwraca 1 gdy dobrze
      0 gdy blad
   */
   char c, firstchar;
 
-  if ((*bufor)[*j] == '(') {
+  if (bufor[*j] == '(') {
     (*j)++;
     firstchar = *j;
-    while ((c = (*bufor)[*j]) != ')' && (*j) < ile)
+    while ((c = bufor[*j]) != ')' && (*j) < ile)
       (*j)++;
     if (c != ')')
       return 0;
-    return is_label(&(*bufor)[firstchar], (*j) - firstchar, nr, 0, 0, 0);
+    return is_label(&bufor[firstchar], (*j) - firstchar, nr, 0, 0, 0);
   }
-  if (hextab[(*bufor)[(*j)]] > 9)
+  if (hextab[bufor[(*j)]] > 9)
     return 0;
   *nr = 0;
-  while (hextab[c = (*bufor)[*j]] <= 9 && (*j) < ile) {
+  while (hextab[c = bufor[*j]] <= 9 && (*j) < ile) {
     *nr = *nr * 10 + c & 0x0f;
     (*j)++;
   }
   return 1;
 }
 
-int getnumber(int *j, int ile, int *result) {
+int getnumber(int16_t *j, int ile, int16_t *result) {
   /* czyta liczbe z bufora
    jesli odczytal to zwraca 1 oraz wynik przez wskaznik result
    jesli blad to zwraca 0
   */
 
-  int wart, w;
+  int16_t wart, w;
   char c;
   wart = 0;
-  switch (c = (*bufor)[*j]) {
+  switch (c = bufor[*j]) {
   case 39: /* apostrof */
     if ((++(*j)) == ile)
       return 0;
-    *result = (*bufor)[(*j)++];
+    *result = bufor[(*j)++];
     return 1;
   case '$':
-    if ((++(*j)) == ile || hextab[(*bufor)[*j]] == 0x7f)
+    if ((++(*j)) == ile || hextab[bufor[*j]] == 0x7f)
       return 0;
-    while ((*j) < ile && (w = hextab[(*bufor)[*j]]) != 0x7f) {
+    while ((*j) < ile && (w = hextab[bufor[*j]]) != 0x7f) {
       (*j)++;
       wart = (wart << 4) + w;
     }
     break;
   case ':': /* binary */
-    if ((++(*j)) == ile || hextab[(*bufor)[*j]] > 1)
+    if ((++(*j)) == ile || hextab[bufor[*j]] > 1)
       return 0;
-    while ((*j) < ile && (w = hextab[(*bufor)[*j]]) <= 1) {
+    while ((*j) < ile && (w = hextab[bufor[*j]]) <= 1) {
       (*j)++;
       wart = (wart << 1) | w;
     }
@@ -908,9 +853,9 @@ int getnumber(int *j, int ile, int *result) {
     return 1;
 
   default: /*liczba dziesietna*/
-    if (hextab[(*bufor)[*j]] >= 10)
+    if (hextab[bufor[*j]] >= 10)
       return 0;
-    while ((c = (*bufor)[*j] - '0') >= 0 && c < 10 && (*j) < ile) {
+    while ((c = bufor[*j] - '0') >= 0 && c < 10 && (*j) < ile) {
       (*j)++;
       wart = wart * 10 + c;
     }
@@ -920,13 +865,13 @@ int getnumber(int *j, int ile, int *result) {
 }
 
 void calc(int *np, int *op) {
-  int wart, wart2;
+  int16_t wart, wart2;
   switch (os[--(*op)]) { /* level 1 LSB & MSB */
   case '<':
-    ns[(*np)++] = ns[--(*np)] & 0xff;
+    ns[(*np) - 1] = ns[(*np) - 1] & 0xff;
     break;
   case '>':
-    ns[(*np)++] = (unsigned int)ns[--(*np)] >> 8;
+    ns[(*np) - 1] = (uint16_t)ns[(*np) - 1] >> 8;
     break;
 
   /* level 2 logical operators */
@@ -941,55 +886,66 @@ void calc(int *np, int *op) {
     ns[(*np)++] = wart && wart2; /*AND*/
     break;
   case '~':
-    ns[(*np)++] = !ns[--(*np)];
+    ns[(*np) - 1] = !ns[(*np) - 1];
     break; /*NOT*/
 
   /* level eqution operators */
   case '=':
-    ns[(*np)++] = (ns[--(*np)] == ns[--(*np)]);
+    --(*np);
+    ns[(*np) - 1] = (ns[(*np) - 1] == ns[(*np)]);
     break;
   case 'r':
-    ns[(*np)++] = (ns[--(*np)] != ns[--(*np)]);
+    --(*np);
+    ns[(*np) - 1] = (ns[(*np) - 1] != ns[(*np)]);
     break;
     /*
     pobranie ze stosu w odwrotnej kolejnosci dlatego zamiast np. < jest >
     */
   case 'm':
-    ns[(*np)++] = (ns[--(*np)] > ns[--(*np)]);
+    --(*np);
+    ns[(*np) - 1] = (ns[(*np) - 1] < ns[(*np)]);
     break;
   case 'w':
-    ns[(*np)++] = (ns[--(*np)] < ns[--(*np)]);
+    --(*np);
+    ns[(*np) - 1] = (ns[(*np) - 1] > ns[(*np)]);
     break;
   case '{':
-    ns[(*np)++] = (ns[--(*np)] >= ns[--(*np)]);
+    --(*np);
+    ns[(*np) - 1] = (ns[(*np) - 1] <= ns[(*np)]);
     break;
   case '}':
-    ns[(*np)++] = (ns[--(*np)] <= ns[--(*np)]);
+    --(*np);
+    ns[(*np) - 1] = (ns[(*np) - 1] >= ns[(*np)]);
     break;
 
   /*  bit operators */
   case '&':
-    ns[(*np)++] = (ns[--(*np)] & ns[--(*np)]);
+    --(*np);
+    ns[(*np) - 1] = (ns[(*np) - 1] & ns[(*np)]);
     break; /* AND*/
   case '|':
-    ns[(*np)++] = (ns[--(*np)] | ns[--(*np)]);
+    --(*np);
+    ns[(*np) - 1] = (ns[(*np) - 1] | ns[(*np)]);
     break; /*  OR*/
   case '^':
-    ns[(*np)++] = (ns[--(*np)] ^ ns[--(*np)]);
+    --(*np);
+    ns[(*np) - 1] = (ns[(*np) - 1] ^ ns[(*np)]);
     break; /* EOR*/
 
   /* addition & substraction */
   case '+':
-    ns[(*np)++] = ns[--(*np)] + ns[--(*np)];
+    --(*np);
+    ns[(*np) - 1] = (ns[(*np) - 1] + ns[(*np)]);
     break;
   case '-':
     wart = ns[--(*np)];
-    ns[(*np)++] = ns[--(*np)] - wart;
+    ns[(*np) - 1] = ns[(*np) - 1] - wart;
     break;
 
   /* multiplication & division */
   case '*':
-    ns[(*np)++] = ns[--(*np)] * ns[--(*np)];
+    --(*np);
+    ns[(*np) - 1] = (ns[(*np) - 1] * ns[(*np)]);
     break;
   case '/':
     wart = ns[--(*np)];
@@ -997,60 +953,60 @@ void calc(int *np, int *op) {
       error("Divide by zero!");
       wart = 1;
     }
-    ns[(*np)++] = ns[--(*np)] / wart;
+    ns[(*np) - 1] = ns[(*np) - 1] / wart;
     break;
 
   /* negacja */
   case '!':
-    ns[(*np)++] = 0 - ns[--(*np)];
+    ns[(*np) - 1] = 0 - ns[(*np) - 1];
     break;
   }
 }
 
-int evaluate(int pocz, int ile, int *wynik) {
+int evaluate(int pocz, int ile, int16_t *wynik) {
   /* jezeli mozna obliczyc wartosc wyrazenia to zwraca 1,i wartosc
      poprzez wskaznik wynik
      w przeciwnym wypadku zwraca 0, nie zmiania danej wskazywanej przez
-     wynik
-  */
-  int i, last, n, lev, firstchar;
+     wynik*/
+
+  int16_t i, last, n, lev, firstchar;
   char op, c, errlab;
   i = pocz;
   osp = nsp = ns[0] = last = hsp = errlab = 0;
   while (i < ile) {
-    if ((*bufor)[i] == ' ') {
+    if (bufor[i] == ' ') {
       i++;
       continue;
     }
-    if (!fclnum[(*bufor)[i]]) {
+    if (!fclnum[bufor[i]]) {
       switch (op = getoperator(&i)) {
       case 0:
-        if (thesame(&(*bufor)[i], ".def", 4)) /* operator .def*/
+        if (thesame(&bufor[i], ".def", 4)) /* operator .def*/
         {
           i += 4;
-          while ((*bufor)[i] == ' ' && i < ile)
+          while (bufor[i] == ' ' && i < ile)
             i++;
           firstchar = i;
-          while (labtab[(*bufor)[i]] && i < ile)
+          while (labtab[bufor[i]] && i < ile)
             i++;
           if (i == firstchar)
             return 0; /*zla skladnia*/
-          ns[nsp++] = is_label(&(*bufor)[firstchar], i - firstchar, &firstchar,
-                               0, 0, 0);
+          ns[nsp++] =
+              is_label(&bufor[firstchar], i - firstchar, &firstchar, 0, 0, 0);
           hist[hsp++] = 'n';
           break;
         }
-        if (thesame(&(*bufor)[i], ".ref", 4)) /* operator .def*/
+        if (thesame(&bufor[i], ".ref", 4)) /* operator .def*/
         {
           i += 4;
-          while ((*bufor)[i] == ' ' && i < ile)
+          while (bufor[i] == ' ' && i < ile)
             i++;
           firstchar = i;
-          while (labtab[(*bufor)[i]] && i < ile)
+          while (labtab[bufor[i]] && i < ile)
             i++;
           if (i == firstchar)
             return 0; /*zla skladnia*/
-          ns[nsp++] = ref_label(&(*bufor)[firstchar], i - firstchar);
+          ns[nsp++] = ref_label(&bufor[firstchar], i - firstchar);
           hist[hsp++] = 'n';
           break;
         }
@@ -1058,7 +1014,7 @@ int evaluate(int pocz, int ile, int *wynik) {
 
       case '[':
         os[osp++] = hist[hsp++] = '[';
-        while ((*bufor)[i] == '[') {
+        while (bufor[i] == '[') {
           i++;
           os[osp++] = '[';
           hist[hsp++] = '[';
@@ -1103,7 +1059,7 @@ int evaluate(int pocz, int ile, int *wynik) {
         last = level(op);
       }
     } else {
-      if (fcltab[c = (*bufor)[i]]) {
+      if (fcltab[c = bufor[i]]) {
         errlab |= (!findlabel(&i, ile, &n)); /*1 gdy nie mozna wyliczyc*/
       } else if (!getnumber(&i, ile, &n))
         return 0; /* nie mozna wyliczyc*/
@@ -1130,31 +1086,31 @@ int evaluate(int pocz, int ile, int *wynik) {
 
 // end include argvalue.c
 
-adrmode(char first, char last)
+int adrmode(char first, char last)
 /* zwraca numer rozpoznanego trybu adresowania
  */
 {
-  switch ((*bufor)[first]) {
+  switch (bufor[first]) {
   case 'a':
   case 'A':
     if (last - first == 1)
       return 2;
-    if ((last - first == 2) && (*bufor)[last] == ' ')
+    if ((last - first == 2) && bufor[last] == ' ')
       return 2;
     break;
   case '#':
     return 3;
   case '(':
-    if (thesame(&(*bufor)[last - 3], "),y", 3))
+    if (thesame(&bufor[last - 3], "),y", 3))
       return 11; /* (aa),y  */
-    if (thesame(&(*bufor)[last - 3], ",x)", 3))
+    if (thesame(&bufor[last - 3], ",x)", 3))
       return 10; /* (aa,x)  */
-    if ((*bufor)[last - 1] == ')')
+    if (bufor[last - 1] == ')')
       return 12; /* (aaaa)  */
   }
-  if (thesame(&(*bufor)[last - 2], ",x", 2))
+  if (thesame(&bufor[last - 2], ",x", 2))
     return 6; /*  aaaa,x */
-  if (thesame(&(*bufor)[last - 2], ",y", 2))
+  if (thesame(&bufor[last - 2], ",y", 2))
     return 8; /*  aaaa,y */
   return 4;   /* aaaa */
 }
@@ -1164,9 +1120,9 @@ char arglen(char first, char last)
    jezeli nie mozna wyznaczyc dlugosci to zwraca 2
 */
 {
-  int argval;
+  int16_t argval;
 
-  switch ((*bufor)[first]) {
+  switch (bufor[first]) {
   case '#':
   case '(':
     return 1;
@@ -1175,8 +1131,7 @@ char arglen(char first, char last)
     if ((last - first) == 1)
       return 0;
     // dodalej spr. ';' - poprawka bledu z lsr a i komentarzem
-    if (((last - first) == 2) && ((*bufor)[last] == ' ') ||
-        (*bufor)[last] == ';')
+    if (((last - first) == 2) && (bufor[last] == ' ') || bufor[last] == ';')
       return 0;
   }
   if (evaluate(first, last, &argval)) /* jezeli mozna wyznaczyc wartosc */
@@ -1187,8 +1142,8 @@ char arglen(char first, char last)
 }
 char mnemnr(char first) {
   char m;
-  m = mnem_hash_tab[hash_mnem(&(*bufor)[first])];
-  if (thesame((char *)&(*bufor)[first], (char *)&mnemoniki[m].mnem, 3))
+  m = mnem_hash_tab[hash_mnem(&bufor[first])];
+  if (thesame((char *)&bufor[first], (char *)&mnemoniki[m].mnem, 3))
     return m;
   return -1;
 }
@@ -1199,8 +1154,8 @@ char instrlen(char first)
 */
 {
   char m;
-  m = mnem_hash_tab[hash_mnem(&(*bufor)[first])];
-  if (thesame((char *)&(*bufor)[first], (char *)&mnemoniki[m].mnem, 3))
+  m = mnem_hash_tab[hash_mnem(&bufor[first])];
+  if (thesame((char *)&bufor[first], (char *)&mnemoniki[m].mnem, 3))
     return mnemoniki[m].mlen;
   return -1;
 }
@@ -1211,40 +1166,40 @@ int cnt_byte(void)
 */
 {
   char c;
-  int ile, wart;
+  int16_t ile, wart;
 
   ile = 0;
-  while ((c = (*bufor)[col]) == ' ' || c == tab)
+  while ((c = bufor[col]) == ' ' || c == tab)
     col++;
   if (c == '+') {
-    if ((*bufor)[++col] == '$')
-      while (hextab[(*bufor)[++col]] != 0x7f) {
+    if (bufor[++col] == '$')
+      while (hextab[bufor[++col]] != 0x7f) {
       }
     else
-      while (hextab[(*bufor)[col]] < 10)
+      while (hextab[bufor[col]] < 10)
         col++;
-    if ((*bufor)[col++] != ',')
+    if (bufor[col++] != ',')
       return 0; /*zly format wyrazenia*/
   }
-  while ((c = (*bufor)[col]) != crt) {
+  while ((c = bufor[col]) != crt) {
     if (c == crt || c == ';' || c == ',')
       return 0; /* zly format wyrazenia */
-    switch ((*bufor)[col]) {
+    switch (bufor[col]) {
     case 39: /* apostrof */
       col++;
-      if ((*bufor)[col] != crt) {
+      if (bufor[col] != crt) {
         ile++;
         col++;
         break;
       }
       return 0; /* zly format */
     case '"':
-      while ((c = (*bufor)[++col]) != '"' && c != crt)
+      while ((c = bufor[++col]) != '"' && c != crt)
         ile++;
       col++;
       break;
     default:
-      if (c == '%' && (*bufor)[col + 1] == '$' &&
+      if (c == '%' && bufor[col + 1] == '$' &&
           inside_macro) { /*text parameter*/
         col += 2;
         if (paramnr(&col, buflen, &wart) && wart + first_par < psp) {
@@ -1254,12 +1209,12 @@ int cnt_byte(void)
             ile += param[first_par];
         }
       } else { /* expression*/
-        while ((c = (*bufor)[++col]) != crt && c != ';' && c != ',')
+        while ((c = bufor[++col]) != crt && c != ';' && c != ',')
           ;
         ile++;
       }
     }
-    if ((*bufor)[col] != ',')
+    if (bufor[col] != ',')
       return ile;
     col++;
   }
@@ -1275,16 +1230,16 @@ int cnt_word(void)
   int ile;
 
   ile = 0;
-  while ((c = (*bufor)[col]) == ' ' || c == tab)
+  while ((c = bufor[col]) == ' ' || c == tab)
     col++;
   if (c == crt || c == ',' || c == ';')
     return 0; /*zly format wyrazenia */
-  while ((c = (*bufor)[col]) != crt && c != ';') {
-    while ((c = (*bufor)[++col]) != crt && c != ';' && c != ',')
+  while ((c = bufor[col]) != crt && c != ';') {
+    while ((c = bufor[++col]) != crt && c != ';' && c != ',')
       ;
     ile += 2;
   }
-  if ((*bufor)[col] != ',')
+  if (bufor[col] != ',')
     return ile;
   col++;
   return ile;
@@ -1311,7 +1266,6 @@ void print_line(int mhead) {
     fprintf(flist, "M  ");
   }
   fprintf(flist, "%s", bufor);
-  kb_wait();
   /* w prn_lin znacznik zeby nie powtarzac*/
   prn_lin = 0;
   char_out = 0;
@@ -1324,7 +1278,6 @@ void print_line(int mhead) {
 
 void listcode(unsigned char c) {
   if (listflg && (clistflg || asmflg)) {
-    kb_wait();
     if (char_out && !licz_list) {
       fprintf(flist, "\n");
       char_out = 0;
@@ -1373,7 +1326,7 @@ static struct {
 } buf_out;
 
 void clr_buf_out(void) {
-  unsigned int i;
+  uint16_t i;
   if (bptr) { /* bptr=0 gdy nie wyslano jescze zadnego bajtu */
     if (adresbytes) {
       put_out(buf_out.first & 0xff);
@@ -1389,7 +1342,7 @@ void clr_buf_out(void) {
 }
 
 void putbyte(unsigned char c) {
-  unsigned int i;
+  uint16_t i;
   if (!objflg) {
     adres++;
     return;
@@ -1428,23 +1381,23 @@ void putbyte(unsigned char c) {
 
 void putinstr(char m) {
   char c, mode, firstchar, lastchar, *mod;
-  int argument;
+  int16_t argument;
 
   if ((c = mnemoniki[m].modes[0]) != (char)0xff) {
     putbyte(c);
     return;
   } /* bez argumentowy */
 
-  while ((c = (*bufor)[col]) == ' ' || c == tab)
+  while ((c = bufor[col]) == ' ' || c == tab)
     col++;
   if (c == crt || c == ';') {
     error("bad operand");
   } else {
     firstchar = col;
-    while (((c = (*bufor)[col]) != ' ' || (*bufor)[col + 1] != ' ') &&
-           c != tab && c != crt && c != ';')
+    while (((c = bufor[col]) != ' ' || bufor[col + 1] != ' ') && c != tab &&
+           c != crt && c != ';')
       col++;
-    if ((*bufor)[col - 1] == ' ')
+    if (bufor[col - 1] == ' ')
       col--;
     if ((c = mnemoniki[m].modes[1]) != (char)0xff) /*skok wzgledny*/
     {
@@ -1569,69 +1522,69 @@ void optexec(void) {
   int licz, set;
 
   licz = 0;
-  while ((c = (*bufor)[col]) == ' ' || c == tab)
+  while ((c = bufor[col]) == ' ' || c == tab)
     col++;
-  while ((c = (*bufor)[col]) != crt) {
+  while ((c = bufor[col]) != crt) {
     set = 1;
-    if (thesame(&(*bufor)[col], "no", 2)) {
+    if (thesame(&bufor[col], "no", 2)) {
       col += 2;
       set = 0;
-      while ((c = (*bufor)[col]) == ' ' || c == tab)
+      while ((c = bufor[col]) == ' ' || c == tab)
         col++;
       if (c == crt)
         break; /* bad opt format*/
     }
     do {
-      if (thesame(&(*bufor)[col], "obj", 3)) {
+      if (thesame(&bufor[col], "obj", 3)) {
         objflg = set;
         col += 3;
         licz++;
         break;
       }
 
-      if (thesame(&(*bufor)[col], "list", 4)) {
+      if (thesame(&bufor[col], "list", 4)) {
         listflg = set & lstf;
         col += 4;
         licz++;
         break;
       }
 
-      if (thesame(&(*bufor)[col], "err", 3)) {
+      if (thesame(&bufor[col], "err", 3)) {
         errflg = set;
         col += 3;
         licz++;
         break;
       }
 
-      if (thesame(&(*bufor)[col], "eject", 5)) {
+      if (thesame(&bufor[col], "eject", 5)) {
         ejectflg = set;
         col += 5;
         licz++;
         break;
       }
 
-      if (thesame(&(*bufor)[col], "mlist", 5)) {
+      if (thesame(&bufor[col], "mlist", 5)) {
         mlistflg = set;
         col += 5;
         licz++;
         break;
       }
 
-      if (thesame(&(*bufor)[col], "clist", 5)) {
+      if (thesame(&bufor[col], "clist", 5)) {
         clistflg = set;
         col += 5;
         licz++;
         break;
       }
 
-      if (thesame(&(*bufor)[col], "num", 3)) {
+      if (thesame(&bufor[col], "num", 3)) {
         numflg = set;
         col += 3;
         licz++;
         break;
       }
 
-      if (thesame(&(*bufor)[col], "xref", 4)) {
+      if (thesame(&bufor[col], "xref", 4)) {
         xrefflg = set;
         col += 4;
         licz++;
@@ -1640,7 +1593,7 @@ void optexec(void) {
 
       licz = 0; /* blad */
     } while (0);
-    if ((*bufor)[col++] != ',' && licz > 0)
+    if (bufor[col++] != ',' && licz > 0)
       return; /*O.K.*/
     if (!licz)
       break;
@@ -1655,37 +1608,37 @@ void put_byte(int type)
 */
 {
   char c, firstchar;
-  int add, wart, cnt, par;
+  int16_t add, wart, cnt, par;
   char *text;
 
   add = 0;
-  while ((c = (*bufor)[col]) == ' ' || c == tab)
+  while ((c = bufor[col]) == ' ' || c == tab)
     col++;
   if (c == '+') {
     col++;
-    if (!getnumber(&col, buflen, &add) || (*bufor)[col++] != ',') {
+    if (!getnumber(&col, buflen, &add) || bufor[col++] != ',') {
       error("bad offset in .byte");
       return;
     }
   }
-  while ((c = (*bufor)[col]) != crt) {
+  while ((c = bufor[col]) != crt) {
     switch (c) {
     case 39: /* apostrof */
-      if ((c = (*bufor)[++col]) != crt) {
+      if ((c = bufor[++col]) != crt) {
         if (type == 1)
           c = asctoscr(c); /*.sbyte*/
-        putbyte(add + c & 0xff);
+        putbyte(add + c & UINT8_C(0xff));
       } else
         error("endline after ' ");
       c++;
       break;
 
     case '"':
-      while ((c = (*bufor)[++col]) != '"' && c != crt) {
+      while ((c = bufor[++col]) != '"' && c != crt) {
         if (type == 1)
           c = asctoscr(c); /* .sbyte */
         if (type == 2)
-          if ((*bufor)[col + 1] == '"')
+          if (bufor[col + 1] == '"')
             c ^= 0x80; /*.cbyte*/
         putbyte(add + c & 0xff);
       }
@@ -1696,7 +1649,7 @@ void put_byte(int type)
       break;
 
     default:
-      if (c == '%' && (*bufor)[col + 1] == '$' &&
+      if (c == '%' && bufor[col + 1] == '$' &&
           inside_macro) { /*text parameter*/
         col += 2;
         if (!paramnr(&col, buflen, &wart))
@@ -1716,7 +1669,7 @@ void put_byte(int type)
               if (type == 1)
                 c = asctoscr(c); /* .sbyte */
               if (type == 2)
-                if ((*bufor)[col + 1] == '"')
+                if (bufor[col + 1] == '"')
                   c ^= 0x80;
               /*.cbyte*/
               putbyte(c);
@@ -1726,8 +1679,8 @@ void put_byte(int type)
         }
       } else { /* wyrazenie*/
         firstchar = col;
-        while ((c = (*bufor)[++col]) != crt && c != ';' &&
-               (c != ' ' || (*bufor)[col + 1] != ' ') && c != tab && c != ',')
+        while ((c = bufor[++col]) != crt && c != ';' &&
+               (c != ' ' || bufor[col + 1] != ' ') && c != tab && c != ',')
           ;
         evaluate(firstchar, col, &wart);
         if (wart < -128 || wart > 255)
@@ -1739,7 +1692,7 @@ void put_byte(int type)
         }
       }
     } /*switch*/
-    if ((*bufor)[col++] != ',')
+    if (bufor[col++] != ',')
       return;
   } /*while*/
 }
@@ -1753,14 +1706,14 @@ dbyteflg rowny 0 gdy uzyto dyrektywy word
 */
 {
   char c;
-  int wart, firstchar;
+  int16_t wart, firstchar;
 
-  while ((c = (*bufor)[col]) == ' ' || c == tab)
+  while ((c = bufor[col]) == ' ' || c == tab)
     col++;
-  while ((c = (*bufor)[col]) != crt) {
+  while ((c = bufor[col]) != crt) {
     firstchar = col;
-    while ((c = (*bufor)[++col]) != crt && c != ';' &&
-           (c != ' ' || (*bufor)[col + 1] != ' ') && c != tab && c != ',')
+    while ((c = bufor[++col]) != crt && c != ';' &&
+           (c != ' ' || bufor[col + 1] != ' ') && c != tab && c != ',')
       ;
     evaluate(firstchar, col, &wart);
     if (!dbyteflg) { /*.word*/
@@ -1770,7 +1723,7 @@ dbyteflg rowny 0 gdy uzyto dyrektywy word
       putbyte(wart >> 8);
       putbyte(wart & 0xff);
     }
-    if ((*bufor)[col++] != ',')
+    if (bufor[col++] != ',')
       return;
   }
 }
@@ -1786,18 +1739,18 @@ formatu Atari XL/XE
     wynik[i] = 0;
   i = pocz;
   sgn = 0x40;
-  if ((*bufor)[i] == '-') {
+  if (bufor[i] == '-') {
     i++;
     sgn = 0xc0;
-  } else if ((*bufor)[i] == '+')
+  } else if (bufor[i] == '+')
     i++;
-  while ((*bufor)[i] == '0')
+  while (bufor[i] == '0')
     i++;
-  fch = (*bufor)[i];
+  fch = bufor[i];
   fi = 1;
   nib = 4;
   exp = -2;
-  while ((c = (*bufor)[i]) >= '0' && c <= '9' && i < ile) {
+  while ((c = bufor[i]) >= '0' && c <= '9' && i < ile) {
     i++;
     if (fi < 6) {
       wynik[fi] |= (c & 0x0f) << nib;
@@ -1810,11 +1763,11 @@ formatu Atari XL/XE
 
   if (c == '.') {
     i++;
-    while (fch == '.' && (*bufor)[i] == '0' && i < ile) {
+    while (fch == '.' && bufor[i] == '0' && i < ile) {
       i++;
       exp--;
     }
-    while ((c = (*bufor)[i]) >= '0' && c <= '9' && i < ile) {
+    while ((c = bufor[i]) >= '0' && c <= '9' && i < ile) {
       i++;
       if (fi < 6) {
         wynik[fi] |= (c & 0x0f) << nib;
@@ -1827,13 +1780,13 @@ formatu Atari XL/XE
   if (c == 'e' || c == 'E') {
     fch = 1;
     wart = 0;
-    switch ((*bufor)[++i]) {
+    switch (bufor[++i]) {
     case '-':
       fch = -1;
     case '+':
       i++;
     }
-    while ((c = (*bufor)[i]) >= '0' && c <= '9') {
+    while ((c = bufor[i]) >= '0' && c <= '9') {
       i++;
       wart = wart * 10 + (c & 0x0f);
     }
@@ -1851,7 +1804,7 @@ formatu Atari XL/XE
     wart |= wynik[c];
   if (!wart)
     wynik[0] = 0;
-  if (i == pocz || (i == pocz + 1 && (*bufor)[pocz] == '.')) {
+  if (i == pocz || (i == pocz + 1 && bufor[pocz] == '.')) {
     error("Bad .float syntax");
     for (c = 0; c < 6; c++)
       wynik[c] = 0;
@@ -1867,22 +1820,22 @@ wyprowadza dane wprowadzone za pomoca dyrektywy .float
   char fltbuf[6];
   int firstchar;
 
-  while ((c = (*bufor)[col]) == ' ' || c == tab)
+  while ((c = bufor[col]) == ' ' || c == tab)
     col++;
-  while ((c = (*bufor)[col]) != crt) {
+  while ((c = bufor[col]) != crt) {
     firstchar = col;
-    while ((c = (*bufor)[++col]) != crt && c != ';' &&
-           (c != ' ' || (*bufor)[col + 1] != ' ') && c != tab && c != ',')
+    while ((c = bufor[++col]) != crt && c != ';' &&
+           (c != ' ' || bufor[col + 1] != ' ') && c != tab && c != ',')
       ;
     read_float(firstchar, col, fltbuf);
     for (c = 0; c < 6; c++)
       putbyte(fltbuf[c]);
-    if ((*bufor)[col++] != ',')
+    if (bufor[col++] != ',')
       return;
   }
 }
 
-getlabel(void)
+int getlabel(void)
 /* Pobiera etykiete i probuje dolaczyc do listy etykiet
    wykorzystywana w pierwszym przebiegu
    zwraca 1 gdy bylo podstawienie wartosci przez '='
@@ -1890,16 +1843,17 @@ getlabel(void)
 */
 {
   char c, lastchar, firstchar;
-  int labval, tmp;
-  if (!fcltab[(*bufor)[col]])
+  int16_t labval;
+  int tmp;
+  if (!fcltab[bufor[col]])
     return 0;
 
-  while (labtab[(*bufor)[col]])
+  while (labtab[bufor[col]])
     col++;
   lastchar = col;
-  while ((c = (*bufor)[col]) == ' ' || c == tab)
+  while ((c = bufor[col]) == ' ' || c == tab)
     col++;
-  if (c != '=' && (c != '.' || (*bufor)[col + 1] !=
+  if (c != '=' && (c != '.' || bufor[col + 1] !=
                                    '=')) { /* Podstawienie adresu na etykiete */
     if (asmflg) /* spr. znacznika semblacji warunkowej */
       (void)is_label((char *)bufor, lastchar, &labval, adres, 1, inside_macro);
@@ -1911,11 +1865,11 @@ getlabel(void)
     if (tmp = (c == '.'))
       col++; /* tmp =1 gdy .= else tmp =0 */
     col++;
-    while ((c = (*bufor)[col]) == ' ' || c == tab)
+    while ((c = bufor[col]) == ' ' || c == tab)
       col++;
     firstchar = col;
-    while (((c = (*bufor)[col]) != ' ' || (*bufor)[col + 1] != ' ') &&
-           c != tab && c != crt && c != ';')
+    while (((c = bufor[col]) != ' ' || bufor[col + 1] != ' ') && c != tab &&
+           c != crt && c != ';')
       col++;
     /* Podstawienie wartosci na etykiete */
     if (asmflg) /* spr. znacznika asemblacji warunkowej */
@@ -1931,7 +1885,7 @@ getlabel(void)
   return 1;
 }
 
-checklabel(void)
+int checklabel(void)
 /* Pobiera etykiete i
     -sprawdza czy nie ma bladu fazy
     -sprawdza czy etykieta nie byla juz wczesniej zdefiniowana
@@ -1941,17 +1895,18 @@ checklabel(void)
 */
 {
   char c, lastchar, firstchar;
-  int labval, lbv, tmp;
-  if (!fcltab[(*bufor)[col]])
+  int16_t labval, lbv;
+  int tmp;
+  if (!fcltab[bufor[col]])
     return 0;
 
-  while (labtab[(*bufor)[col]])
+  while (labtab[bufor[col]])
     col++;
   lastchar = col;
-  while ((c = (*bufor)[col]) == ' ' || c == tab)
+  while ((c = bufor[col]) == ' ' || c == tab)
     col++;
   if (c != '=' &&
-      (c != '.' || (*bufor)[col + 1] != '=')) { /* spr i ew. dodaje etykiete */
+      (c != '.' || bufor[col + 1] != '=')) { /* spr i ew. dodaje etykiete */
     if (asmflg) /* spr znacznika asemblacji warunkowej */
     {
       if (is_label((char *)bufor, lastchar, &lbv, adres, 1, inside_macro) &&
@@ -1966,11 +1921,11 @@ checklabel(void)
     if (tmp = (c == '.'))
       col++; /* tmp =1 gdy .= else tmp =0 */
     col++;
-    while ((c = (*bufor)[col]) == ' ' || c == tab)
+    while ((c = bufor[col]) == ' ' || c == tab)
       col++;
     firstchar = col;
-    while (((c = (*bufor)[col]) != ' ' || (*bufor)[col + 1] != ' ') &&
-           c != tab && c != crt && c != ';')
+    while (((c = bufor[col]) != ' ' || bufor[col + 1] != ' ') && c != tab &&
+           c != crt && c != ';')
       col++;
     if (asmflg) {
       if (evaluate(firstchar, col, &labval)) {
@@ -1990,16 +1945,16 @@ void getinstruction(void) {
   unsigned char len;
   struct macro *mptr;
 
-  if ((c = (*bufor)[col]) == crt || c == ';')
+  if ((c = bufor[col]) == crt || c == ';')
     return;
   i = col;
-  while ((c = (*bufor)[col]) != ' ' && c != tab && c != crt)
+  while ((c = bufor[col]) != ' ' && c != tab && c != crt)
     col++;
   if ((ile = col - i) == 3 && (len = instrlen(i)) != 0xff)
     switch (len) {
     case 0: /* dlugosc nie znana*/
     {
-      while ((c = (*bufor)[col]) == ' ' || c == tab)
+      while ((c = bufor[col]) == ' ' || c == tab)
         col++;
       if (c == crt) {
         error("no operand");
@@ -2007,8 +1962,8 @@ void getinstruction(void) {
       }
       i = col;
       while (
-          ((c = (*bufor)[col]) != ' ' || (*bufor)[col + 1] != ' ') &&
-          c != ',' && c != tab && c != crt &&
+          ((c = bufor[col]) != ' ' || bufor[col + 1] != ' ') && c != ',' &&
+          c != tab && c != crt &&
           c != ';' ////dodalej spr. ';' - poprawka bledu z lsr a i komentarzem
       )
         col++;
@@ -2019,7 +1974,7 @@ void getinstruction(void) {
     }
   else /* maybe a macro? */
   {
-    if ((mptr = is_macro(&(*bufor)[i], ile)) != NULL)
+    if ((mptr = is_macro(&bufor[i], ile)) != NULL)
       macro_analizing(mptr);
     /* else error("Undefined macro") bylby w drugiej fazie */;
   }
@@ -2029,7 +1984,8 @@ void asm_if(void)
 /* dyrektywa .if */
 {
   char c;
-  int value, firstchar;
+  int16_t value;
+  int firstchar;
 
   if (isp >= 14) {
     error(".if/.endif stack full");
@@ -2041,10 +1997,10 @@ void asm_if(void)
     return;
   }
   /* asmflg=1 */
-  while ((c = (*bufor)[col]) == ' ' || c == tab)
+  while ((c = bufor[col]) == ' ' || c == tab)
     col++;
   firstchar = col;
-  while (((c = (*bufor)[col]) != ' ' || (*bufor)[col + 1] != ' ') && c != tab &&
+  while (((c = bufor[col]) != ' ' || bufor[col + 1] != ' ') && c != tab &&
          c != crt && c != ';')
     col++;
 
@@ -2100,24 +2056,24 @@ void include(int what) {
     type = &r[0];
   else
     type = &rb[0];
-  while ((c = (*bufor)[col]) == ' ' || c == tab)
+  while ((c = bufor[col]) == ' ' || c == tab)
     col++;
   if (c == '#') {
     col++;
     firstchar = col;
-    while (((c = (*bufor)[col]) != ' ' || (*bufor)[col + 1] != ' ') &&
-           c != ';' && c != crt && c != tab)
+    while (((c = bufor[col]) != ' ' || bufor[col + 1] != ' ') && c != ';' &&
+           c != crt && c != tab)
       col++;
-    c = (*bufor)[col];
-    (*bufor)[col] = 0;
-    if ((plik = fopen(&(*bufor)[firstchar], type)) == NULL) {
+    c = bufor[col];
+    bufor[col] = 0;
+    if ((plik = fopen(&bufor[firstchar], type)) == NULL) {
       /*error*/
       if (phase == 2)
         error("can't open file");
-      (*bufor)[col] = c;
+      bufor[col] = c;
       return;
     }
-    (*bufor)[col] = c;
+    bufor[col] = c;
     switch (what) {
     case 0: /*include*/
       if (fsp == maxfnr) {
@@ -2135,7 +2091,7 @@ void include(int what) {
       }
       break;
     default: /*incbin*/
-      flen = filelength(fileno(plik));
+      flen = filelength(plik);
       if (phase == 2)
         while (flen--)
           putbyte(fgetc(plik) & 0xff);
@@ -2155,9 +2111,9 @@ void rept(int ph) {
       error("Nested rept");
     return;
   }
-  while ((c = (*bufor)[col]) == ' ' || c == tab)
+  while ((c = bufor[col]) == ' ' || c == tab)
     col++;
-  if (!getnumber(&col, buflen, (int *)&cnt_rept)) {
+  if (!getnumber(&col, buflen, &cnt_rept)) {
     if (ph)
       error("bad syntax");
     return;
@@ -2172,7 +2128,7 @@ void rept(int ph) {
 }
 
 void endr(int ph) {
-  unsigned int i;
+  int16_t i;
   col += 4;
   if (!reptflg) {
     if (ph)
@@ -2202,14 +2158,14 @@ void err_tit_pag(char what)
 {
   char c, *text;
 
-  while ((c = (*bufor)[col++]) == ' ' || c == tab)
+  while ((c = bufor[col++]) == ' ' || c == tab)
     ;
   if (c == '"') {
-    text = &(*bufor)[col];
-    while ((c = (*bufor)[col]) != '"' && c != crt)
+    text = &bufor[col];
+    while ((c = bufor[col]) != '"' && c != crt)
       col++;
     if (c != crt) {
-      (*bufor)[col] = 0;
+      bufor[col] = 0;
       switch (what) {
       case 0:
         error(text);
@@ -2221,7 +2177,7 @@ void err_tit_pag(char what)
         memmove(page_dat, text, buflen);
         break;
       }
-      (*bufor)[col] = c;
+      bufor[col] = c;
       return;
     }
   }
@@ -2250,7 +2206,7 @@ unsigned char get_byte_number(void) {
   unsigned char wart;
   char c;
   wart = 0;
-  while ((c = (*bufor)[col]) >= '0' && c <= '9') {
+  while ((c = bufor[col]) >= '0' && c <= '9') {
     wart = wart * 10 + (c & 0x0f);
     col++;
   }
@@ -2262,14 +2218,14 @@ void set(void) {
   char c;
   unsigned char nr, wart;
 
-  while ((c = (*bufor)[col++]) == ' ' || c == tab)
+  while ((c = bufor[col++]) == ' ' || c == tab)
     ;
-  if (c >= '0' && c <= '4' && (*bufor)[col] == ',') {
+  if (c >= '0' && c <= '4' && bufor[col] == ',') {
     nr = c & 0x0f;
     col++;
-    if ((c = (*bufor)[col]) >= '0' && c <= '9') {
+    if ((c = bufor[col]) >= '0' && c <= '9') {
       wart = get_byte_number();
-      if ((*bufor)[col] != ',') {
+      if (bufor[col] != ',') {
         set_dat[nr] = wart;
         return;
       }
@@ -2282,13 +2238,13 @@ void tab_(void) {
   /* dyrektywa .tab */
   char c, nr;
   unsigned char tab_dt[3];
-  while ((c = (*bufor)[col]) == ' ' || c == tab)
+  while ((c = bufor[col]) == ' ' || c == tab)
     col++;
   for (nr = 0; nr < 3; nr++) {
-    if ((c = (*bufor)[col]) < '0' && c > '9')
+    if ((c = bufor[col]) < '0' && c > '9')
       break;
     tab_dt[nr] = get_byte_number();
-    if ((*bufor)[col++] != ',')
+    if (bufor[col++] != ',')
       break;
   }
   if (nr == 2) {
@@ -2299,7 +2255,7 @@ void tab_(void) {
   error("Bad syntax in .tab");
 }
 
-readln(void) {
+int readln(void) {
   char c;
   int i;
   i = 0;
@@ -2320,19 +2276,20 @@ readln(void) {
 
 //#include "macros.c"
 
-read_param(void) {
+int read_param(void) {
   char c, firstchar;
-  int wart, licz;
+  int16_t wart;
+  int licz;
   char *text;
 
   licz = 0;
-  while ((c = (*bufor)[col]) == ' ' || c == tab)
+  while ((c = bufor[col]) == ' ' || c == tab)
     col++;
-  while ((c = (*bufor)[col]) != crt) {
+  while ((c = bufor[col]) != crt) {
     switch (c) {
     case '"':
       firstchar = ++col;
-      while ((c = (*bufor)[col]) != '"' && c != crt)
+      while ((c = bufor[col]) != '"' && c != crt)
         col++;
       if (c == crt)
         if (phase == 2)
@@ -2344,15 +2301,15 @@ read_param(void) {
       }
       param[psp] = (wart = col - firstchar);
       text = m_alloc(wart);
-      memmove(text, &(*bufor)[firstchar], wart);
+      memmove(text, &bufor[firstchar], wart);
       text_param[psp] = text;
       is_param[psp++] = 2; /*textowy*/
       break;
 
     default:
       firstchar = col;
-      while ((c = (*bufor)[++col]) != crt && c != ';' &&
-             (c != ' ' || (*bufor)[col + 1] != ' ') && c != tab && c != ',')
+      while ((c = bufor[++col]) != crt && c != ';' &&
+             (c != ' ' || bufor[col + 1] != ' ') && c != tab && c != ',')
         ;
       if (psp == max_psp) {
         if (phase == 2)
@@ -2366,7 +2323,7 @@ read_param(void) {
         is_param[psp++] = 0; /* nieokreslony*/
     }                        /*switch*/
     licz++;
-    if ((*bufor)[col++] != ',')
+    if (bufor[col++] != ',')
       return licz;
   } /*while*/
   return licz;
@@ -2380,7 +2337,7 @@ void macro_def(void) {
   struct macro *mptr;
   struct mac_list *mc_lst;
 
-  while ((c = (*bufor)[col]) == ' ' || c == tab)
+  while ((c = bufor[col]) == ' ' || c == tab)
     col++;
   firstchar = col;
   if (!fcltab[c]) {
@@ -2388,12 +2345,12 @@ void macro_def(void) {
     return;
   }
   col++;
-  while (labtab[(*bufor)[col]])
+  while (labtab[bufor[col]])
     col++;
   mptr = m_alloc(sizeof(struct macro));
   mptr->namelen = col - firstchar;
   mptr->mname = m_alloc(mptr->namelen);
-  memmove(mptr->mname, &(*bufor)[firstchar], mptr->namelen);
+  memmove(mptr->mname, &bufor[firstchar], mptr->namelen);
   mptr->mbody = NULL;
   mptr->last_line = NULL;
   do {
@@ -2438,9 +2395,9 @@ void macro_skip(void) {
     if (!readln())
       break;
     col = 0;
-    while ((c = (*bufor)[col]) == ' ' || c == tab)
+    while ((c = bufor[col]) == ' ' || c == tab)
       col++;
-    if (thesame(&(*bufor)[col], ".endm", 5))
+    if (thesame(&bufor[col], ".endm", 5))
       break;
   } while (1);
 }
@@ -2461,7 +2418,7 @@ struct macro *is_macro(char *mname, int ile)
 }
 
 void macro_analizing(struct macro *mptr) {
-  char(*prev_bufor)[];
+  char *prev_bufor;
   struct macroline *mbody;
   int first_param, prev_first;
 
@@ -2476,7 +2433,7 @@ void macro_analizing(struct macro *mptr) {
 
   prev_bufor = bufor;
   for (mbody = mptr->mbody; mbody != NULL; mbody = mbody->nxt) {
-    bufor = (char(*)[])mbody->linebody;
+    bufor = mbody->linebody;
     analizing(); /* i jej analiza phase 1*/
   }
   bufor = prev_bufor;
@@ -2490,12 +2447,12 @@ void macro_analizing(struct macro *mptr) {
 
 void put_macro(char firstchar) {
   struct macroline *mbody;
-  char(*prev_bufor)[];
+  char *prev_bufor;
   struct macro *mptr;
-  unsigned int adres_tmp;
+  int16_t adres_tmp;
   int first_param, prev_first;
   char col_tmp;
-  if ((mptr = is_macro(&(*bufor)[firstchar], col - firstchar)) != NULL) {
+  if ((mptr = is_macro(&bufor[firstchar], col - firstchar)) != NULL) {
     if (listflg && (clistflg || asmflg))
       print_line(1);
     prev_bufor = bufor;
@@ -2519,7 +2476,7 @@ void put_macro(char firstchar) {
     is_param[first_par] = 2;
     prev_bufor = bufor;
     for (mbody = mptr->mbody; mbody != NULL; mbody = mbody->nxt) {
-      bufor = (char(*)[])mbody->linebody;
+      bufor = mbody->linebody;
       prn_lin = 1; /*nie byla printowana*/
       putcode();   /* i putcode*/
       numcnt++;
@@ -2611,7 +2568,6 @@ void printmacros(void) {
   fprintf(flist, "\n defined macros:\n");
   cnt = 0;
   while (orderlist != NULL) {
-    kb_wait();
     if (!fatal) {
       memmove((void *)strbuf, (void *)orderlist->mname,
               (l = orderlist->namelen));
@@ -2643,7 +2599,7 @@ void analizing(void) {
   char *adrbuf;
   col = 0;
   if (!getlabel()) {
-    while ((c = (*bufor)[col]) == ' ' || c == tab)
+    while ((c = bufor[col]) == ' ' || c == tab)
       col++;
     if (!asmflg && c != '.')
       return; /* gdy asemblacja wylanczona */
@@ -2652,25 +2608,25 @@ void analizing(void) {
       if (!col)
         return; /*komentarz*/
       col++;
-      while ((c = (*bufor)[col++]) == ' ' || c == tab)
+      while ((c = bufor[col++]) == ' ' || c == tab)
         ;
       if (c != '=') {
         error("can't evaluate new value for  *=");
         return;
       }
-      while ((c = (*bufor)[col]) == ' ' || c == tab)
+      while ((c = bufor[col]) == ' ' || c == tab)
         col++;
       firstchar = col;
-      while (((c = (*bufor)[col]) != ' ' || (*bufor)[col + 1] != ' ') &&
-             c != ';' && c != crt && c != tab)
+      while (((c = bufor[col]) != ' ' || bufor[col + 1] != ' ') && c != ';' &&
+             c != crt && c != tab)
         col++;
-      if (!evaluate(firstchar, col, (int *)&adres))
+      if (!evaluate(firstchar, col, &adres))
         ;
       /*  error ("can't evaluate new value for *=");*/
       break;
     case '.': /*dyrektywa*/
       col++;
-      adrbuf = &(*bufor)[col];
+      adrbuf = &bufor[col];
       if (thesame(adrbuf, _if, 2)) {
         col += 2;
         asm_if();
@@ -2693,7 +2649,7 @@ void analizing(void) {
         adres += cnt_byte();
         break;
       }
-      if (thesame(&(*bufor)[col + 1], _byte, 4)) { /*.sbyte , .cbyte i .dbyte*/
+      if (thesame(&bufor[col + 1], _byte, 4)) { /*.sbyte , .cbyte i .dbyte*/
         if (thesame(adrbuf, "s", 1)) {
           col += 5;
           adres += cnt_byte();
@@ -2761,14 +2717,14 @@ void putcode(void) {
 
   col = licz_list = 0;
   /*
-  switch((*bufor)[col])
+  switch(bufor[col])
     { case crt: case ';': return;
       case ' '          :break;
-      default: while ((c=(*bufor)[col])!=' '&& c!=tab&& c!=crt) col++;
+      default: while ((c=bufor[col])!=' '&& c!=tab&& c!=crt) col++;
     }
   */
   if (!checklabel()) {
-    while ((c = (*bufor)[col]) == ' ' || c == tab)
+    while ((c = bufor[col]) == ' ' || c == tab)
       col++;
 
     if (!asmflg && c != '.')
@@ -2778,19 +2734,19 @@ void putcode(void) {
       if (!col)
         return; /*komentarz*/
       col++;
-      while ((c = (*bufor)[col++]) == ' ' || c == tab)
+      while ((c = bufor[col++]) == ' ' || c == tab)
         ;
       if (c != '=') {
         error("can't evaluate new value for *=");
         return;
       }
-      while ((c = (*bufor)[col]) == ' ' || c == tab)
+      while ((c = bufor[col]) == ' ' || c == tab)
         col++;
       firstchar = col;
-      while (((c = (*bufor)[col]) != ' ' || (*bufor)[col + 1] != ' ') &&
-             c != ';' && c != crt && c != tab)
+      while (((c = bufor[col]) != ' ' || bufor[col + 1] != ' ') && c != ';' &&
+             c != crt && c != tab)
         col++;
-      if (!evaluate(firstchar, col, (int *)&adres))
+      if (!evaluate(firstchar, col, &adres))
         error("cant' evaluate new value for *=");
       if (reptflg)
         error("*= inside rept");
@@ -2798,7 +2754,7 @@ void putcode(void) {
 
     case '.': /* dyrektywa */
       col++;
-      adrbuf = &(*bufor)[col];
+      adrbuf = &bufor[col];
       if (thesame(adrbuf, _if, 2)) {
         col += 2;
         asm_if();
@@ -2821,7 +2777,7 @@ void putcode(void) {
         put_byte(0);
         break;
       }
-      if (thesame(&(*bufor)[col + 1], _byte, 4)) { /*.sbyte , .cbyte i .dbyte*/
+      if (thesame(&bufor[col + 1], _byte, 4)) { /*.sbyte , .cbyte i .dbyte*/
         if (thesame(adrbuf, "s", 1)) {
           col += 5;
           put_byte(1);
@@ -2914,10 +2870,10 @@ void putcode(void) {
 
       break;
     default:
-      if ((c = (*bufor)[col]) == crt || c == ';')
+      if ((c = bufor[col]) == crt || c == ';')
         return;
       firstchar = col;
-      while ((c = (*bufor)[col]) != ' ' && c != tab && c != crt)
+      while ((c = bufor[col]) != ' ' && c != tab && c != crt)
         col++;
       if ((col - firstchar) == 3 && (c = mnemnr(firstchar)) != -1)
         putinstr(mnemnr(firstchar));
@@ -2927,7 +2883,7 @@ void putcode(void) {
   }
 }
 
-sourceend(void) {
+int sourceend(void) {
   /* zwraca 1 gdy koniec zrodlowki
             0 gdy jeszcze jest
   */
@@ -2945,27 +2901,25 @@ sourceend(void) {
   return 0;
 }
 void prn_info(void) {
-  printf("\n\n");
-  printf("  Usage:        OMC_6502 [Options] source [destination]\n");
-  printf("  Options:\n");
-  printf("    -L          - no assembly listing\n");
-  printf("    -S          - symbols listing\n");
-  printf("    -O          - no output\n");
-  printf("    -H          - hex output\n");
-  printf("    -A          - only code output, no addres bytes\n");
-  printf("    -I#filespec - assembly listing to specified file\n");
-  printf("    -IP         - assembly listing to printer\n");
-  printf("    -E#filespec - error listing to specified file\n");
-  printf("    -EP         - error listing to printer\n");
-  printf("    -N          - no error lines listing\n");
-  printf("    -M          - standard (252 bytes) buffer out size\n");
-  printf("  While assembling:\n");
-  printf("     S           - start, stop listing\n");
-  printf("    ESC          - break assembling\n");
-  printf("\n\n");
-  printf(" press any key to quit.\n");
-  while (!kbhit())
-    ;
+  fprintf(stderr, "\n\n");
+  fprintf(stderr, "  Usage:        OMC_6502 [Options] source [destination]\n");
+  fprintf(stderr, "  Options:\n");
+  fprintf(stderr, "    -L          - no assembly listing\n");
+  fprintf(stderr, "    -S          - symbols listing\n");
+  fprintf(stderr, "    -O          - no output\n");
+  fprintf(stderr, "    -H          - hex output\n");
+  fprintf(stderr, "    -A          - only code output, no addres bytes\n");
+  fprintf(stderr, "    -I#filespec - assembly listing to specified file\n");
+  fprintf(stderr, "    -IP         - assembly listing to printer\n");
+  fprintf(stderr, "    -E#filespec - error listing to specified file\n");
+  fprintf(stderr, "    -EP         - error listing to printer\n");
+  fprintf(stderr, "    -N          - no error lines listing\n");
+  fprintf(stderr, "    -M          - standard (252 bytes) buffer out size\n");
+  fprintf(stderr, "  While assembling:\n");
+  fprintf(stderr, "     S           - start, stop listing\n");
+  fprintf(stderr, "    ESC          - break assembling\n");
+  fprintf(stderr, "\n\n");
+  fprintf(stderr, " press any key to quit.\n");
 }
 
 void setflags(int lstf) {
@@ -2988,18 +2942,18 @@ void get_pth(char *pth) { _getcwd(pth, _MAX_PATH); }
 
 int set_pth(char *pth) { return _chdir(pth); }
 
-void main(int argc, const char *argv[]) {
+int main(int argc, const char *argv[]) {
   char *param;
   static char srcpth[_MAX_PATH + 1], dstpth[_MAX_PATH + 1],
       thispth[_MAX_PATH + 1];
   const char endinfo[] = "\n %ld lines assembled, %d assembly error(s).\n";
   int i, j, k, bsl, symbol;
-  printf(our5oft);
+  printf("%s", our5oft);
   symbol = fatal = err_num_only = 0;
   output = lstf = adresbytes = 1;
   get_pth(thispth); /*zapmietanie aktulnej sciezki*/
   init_tabs();
-  bufor = (char(*)[])line_bufor;
+  bufor = line_bufor;
   bptr = 0;
   buf_out_len = 0xff00;
   psp = first_par = 0;
@@ -3013,7 +2967,7 @@ void main(int argc, const char *argv[]) {
   asm_stack[0] = 1;
   if (argc <= 1) {
     prn_info();
-    return;
+    return 0;
   } else {
     /* otwieramy source */
     for (i = 1; i < argc &&
@@ -3095,7 +3049,7 @@ void main(int argc, const char *argv[]) {
           g_list_output = OUTPUT_FILE;
           flist = fopen(param + 1, "w");
           if (flist != NULL) {
-            fprintf(flist, our5oft);
+            fprintf(flist, "%s", our5oft);
             break;
           }
         }
@@ -3221,4 +3175,5 @@ void main(int argc, const char *argv[]) {
   if (ferr != NULL)
     fclose(ferr);
   set_pth(thispth); /*odtworzenie sciezki */
+  return 0;
 }
