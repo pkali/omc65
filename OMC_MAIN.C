@@ -38,83 +38,69 @@ void strup(char *s) {
 }
 
 struct mnem {
-  char mnem[3];
-  char mlen;
-  char modes[13];
+  uint8_t mnem[4];
+  uint8_t mlen;
+  uint8_t modes[13];
 };
 struct mnem mnemoniki[56] = {
     /*
     ins/len/wewn/bxx /akum/hash/ Q  / Z  /Q,x /Z,x /Q,y /Z,y/(Z,x)/(Z),y/(Q) */
-    "adc", 0,    0xff, 0xff,  0xff, 0x69, 0x6d,  0x65, 0x7d, 0x75,  0x79, 0xff,
-    0x61,  0x71, 0xff, "and", 0,    0xff, 0xff,  0xff, 0x29, 0x2d,  0x25, 0x3d,
-    0x35,  0x39, 0xff, 0x21,  0x31, 0xff, "asl", 0,    0xff, 0xff,  0x0a, 0xff,
-    0x0e,  0x06, 0x1e, 0x16,  0xff, 0xff, 0xff,  0xff, 0xff, "bcc", 2,    0xff,
-    0x90,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff,
-    "bcs", 2,    0xff, 0xb0,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, "beq", 2,    0xff, 0xf0,  0xff, 0xff, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, 0xff,  0xff, 0xff, "bit", 0,    0xff, 0xff,  0xff, 0xff,
-    0x2c,  0x24, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff, "bmi", 2,    0xff,
-    0x30,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff,
-    "bne", 2,    0xff, 0xd0,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, "bpl", 2,    0xff, 0x10,  0xff, 0xff, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, 0xff,  0xff, 0xff, "brk", 1,    0x00, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff, "bvc", 2,    0xff,
-    0x50,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff,
-    "bvs", 2,    0xff, 0x70,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, "clc", 1,    0x18, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, 0xff,  0xff, 0xff, "cld", 1,    0xd8, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff, "cli", 1,    0x58,
-    0xff,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff,
-    "clv", 1,    0xb8, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, "cmp", 0,    0xff, 0xff,  0xff, 0xc9, 0xcd,  0xc5, 0xdd,
-    0xd5,  0xd9, 0xff, 0xc1,  0xd1, 0xff, "cpx", 0,    0xff, 0xff,  0xff, 0xe0,
-    0xec,  0xe4, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff, "cpy", 0,    0xff,
-    0xff,  0xff, 0xc0, 0xcc,  0xc4, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff,
-    "dec", 0,    0xff, 0xff,  0xff, 0xff, 0xce,  0xc6, 0xde, 0xd6,  0xff, 0xff,
-    0xff,  0xff, 0xff, "dex", 1,    0xca, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, 0xff,  0xff, 0xff, "dey", 1,    0x88, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff, "eor", 0,    0xff,
-    0xff,  0xff, 0x49, 0x4d,  0x45, 0x5d, 0x55,  0x59, 0xff, 0x41,  0x51, 0xff,
-    "inc", 0,    0xff, 0xff,  0xff, 0xff, 0xee,  0xe6, 0xfe, 0xf6,  0xff, 0xff,
-    0xff,  0xff, 0xff, "inx", 1,    0xe8, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, 0xff,  0xff, 0xff, "iny", 1,    0xc8, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff, "jmp", 3,    0xff,
-    0xff,  0xff, 0xff, 0x4c,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0x6c,
-    "jsr", 3,    0xff, 0xff,  0xff, 0xff, 0x20,  0xff, 0xff, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, "lda", 0,    0xff, 0xff,  0xff, 0xa9, 0xad,  0xa5, 0xbd,
-    0xb5,  0xb9, 0xff, 0xa1,  0xb1, 0xff, "ldx", 0,    0xff, 0xff,  0xff, 0xa2,
-    0xae,  0xa6, 0xff, 0xff,  0xbe, 0xb6, 0xff,  0xff, 0xff, "ldy", 0,    0xff,
-    0xff,  0xff, 0xa0, 0xac,  0xa4, 0xbc, 0xb4,  0xff, 0xff, 0xff,  0xff, 0xff,
-    "lsr", 0,    0xff, 0xff,  0x4a, 0xff, 0x4e,  0x46, 0x5e, 0x56,  0xff, 0xff,
-    0xff,  0xff, 0xff, "nop", 1,    0xea, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, 0xff,  0xff, 0xff, "ora", 0,    0xff, 0xff,  0xff, 0x09,
-    0x0d,  0x05, 0x1d, 0x15,  0x19, 0xff, 0x01,  0x11, 0xff, "pha", 1,    0x48,
-    0xff,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff,
-    "php", 1,    0x08, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, "pla", 1,    0x68, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, 0xff,  0xff, 0xff, "plp", 1,    0x28, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff, "rol", 0,    0xff,
-    0xff,  0x2a, 0xff, 0x2e,  0x26, 0x3e, 0x36,  0xff, 0xff, 0xff,  0xff, 0xff,
-    "ror", 0,    0xff, 0xff,  0x6a, 0xff, 0x6e,  0x66, 0x7e, 0x76,  0xff, 0xff,
-    0xff,  0xff, 0xff, "rti", 1,    0x40, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, 0xff,  0xff, 0xff, "rts", 1,    0x60, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff, "sbc", 0,    0xff,
-    0xff,  0xff, 0xe9, 0xed,  0xe5, 0xfd, 0xf5,  0xf9, 0xff, 0xff,  0xe1, 0xff,
-    "sec", 1,    0x38, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, "sed", 1,    0xf8, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, 0xff,  0xff, 0xff, "sei", 1,    0x78, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff, "sta", 0,    0xff,
-    0xff,  0xff, 0xff, 0x8d,  0x85, 0x9d, 0x95,  0x99, 0xff, 0x81,  0x91, 0xff,
-    "stx", 0,    0xff, 0xff,  0xff, 0xff, 0x8e,  0x86, 0xff, 0xff,  0x96, 0xff,
-    0xff,  0xff, 0xff, "sty", 0,    0xff, 0xff,  0xff, 0xff, 0x8c,  0x84, 0x94,
-    0xff,  0xff, 0xff, 0xff,  0xff, 0xff, "tax", 1,    0xaa, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff, "tay", 1,    0xa8,
-    0xff,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff,
-    "tsx", 1,    0xba, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, "txa", 1,    0x8a, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, 0xff,  0xff, 0xff, "txs", 1,    0x9a, 0xff,  0xff, 0xff,
-    0xff,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff, "tya", 1,    0x98,
-    0xff,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff, 0xff,  0xff, 0xff};
+    {"adc", 0, 0xff, 0xff, 0xff, 0x69, 0x6d, 0x65, 0x7d, 0x75, 0x79, 0xff, 0x61, 0x71, 0xff},
+    {"and", 0, 0xff, 0xff, 0xff, 0x29, 0x2d, 0x25, 0x3d, 0x35, 0x39, 0xff, 0x21, 0x31, 0xff},
+    {"asl", 0, 0xff, 0xff, 0x0a, 0xff, 0x0e, 0x06, 0x1e, 0x16, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"bcc", 2, 0xff, 0x90, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"bcs", 2, 0xff, 0xb0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"beq", 2, 0xff, 0xf0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"bit", 0, 0xff, 0xff, 0xff, 0xff, 0x2c, 0x24, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"bmi", 2, 0xff, 0x30, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"bne", 2, 0xff, 0xd0, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"bpl", 2, 0xff, 0x10, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"brk", 1, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"bvc", 2, 0xff, 0x50, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"bvs", 2, 0xff, 0x70, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"clc", 1, 0x18, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"cld", 1, 0xd8, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"cli", 1, 0x58, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"clv", 1, 0xb8, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"cmp", 0, 0xff, 0xff, 0xff, 0xc9, 0xcd, 0xc5, 0xdd, 0xd5, 0xd9, 0xff, 0xc1, 0xd1, 0xff},
+    {"cpx", 0, 0xff, 0xff, 0xff, 0xe0, 0xec, 0xe4, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"cpy", 0, 0xff, 0xff, 0xff, 0xc0, 0xcc, 0xc4, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"dec", 0, 0xff, 0xff, 0xff, 0xff, 0xce, 0xc6, 0xde, 0xd6, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"dex", 1, 0xca, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"dey", 1, 0x88, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"eor", 0, 0xff, 0xff, 0xff, 0x49, 0x4d, 0x45, 0x5d, 0x55, 0x59, 0xff, 0x41, 0x51, 0xff},
+    {"inc", 0, 0xff, 0xff, 0xff, 0xff, 0xee, 0xe6, 0xfe, 0xf6, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"inx", 1, 0xe8, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"iny", 1, 0xc8, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"jmp", 3, 0xff, 0xff, 0xff, 0xff, 0x4c, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x6c},
+    {"jsr", 3, 0xff, 0xff, 0xff, 0xff, 0x20, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"lda", 0, 0xff, 0xff, 0xff, 0xa9, 0xad, 0xa5, 0xbd, 0xb5, 0xb9, 0xff, 0xa1, 0xb1, 0xff},
+    {"ldx", 0, 0xff, 0xff, 0xff, 0xa2, 0xae, 0xa6, 0xff, 0xff, 0xbe, 0xb6, 0xff, 0xff, 0xff},
+    {"ldy", 0, 0xff, 0xff, 0xff, 0xa0, 0xac, 0xa4, 0xbc, 0xb4, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"lsr", 0, 0xff, 0xff, 0x4a, 0xff, 0x4e, 0x46, 0x5e, 0x56, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"nop", 1, 0xea, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"ora", 0, 0xff, 0xff, 0xff, 0x09, 0x0d, 0x05, 0x1d, 0x15, 0x19, 0xff, 0x01, 0x11, 0xff},
+    {"pha", 1, 0x48, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"php", 1, 0x08, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"pla", 1, 0x68, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"plp", 1, 0x28, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"rol", 0, 0xff, 0xff, 0x2a, 0xff, 0x2e, 0x26, 0x3e, 0x36, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"ror", 0, 0xff, 0xff, 0x6a, 0xff, 0x6e, 0x66, 0x7e, 0x76, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"rti", 1, 0x40, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"rts", 1, 0x60, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"sbc", 0, 0xff, 0xff, 0xff, 0xe9, 0xed, 0xe5, 0xfd, 0xf5, 0xf9, 0xff, 0xff, 0xe1, 0xff},
+    {"sec", 1, 0x38, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"sed", 1, 0xf8, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"sei", 1, 0x78, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"sta", 0, 0xff, 0xff, 0xff, 0xff, 0x8d, 0x85, 0x9d, 0x95, 0x99, 0xff, 0x81, 0x91, 0xff},
+    {"stx", 0, 0xff, 0xff, 0xff, 0xff, 0x8e, 0x86, 0xff, 0xff, 0x96, 0xff, 0xff, 0xff, 0xff},
+    {"sty", 0, 0xff, 0xff, 0xff, 0xff, 0x8c, 0x84, 0x94, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"tax", 1, 0xaa, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"tay", 1, 0xa8, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"tsx", 1, 0xba, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"txa", 1, 0x8a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"txs", 1, 0x9a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+    {"tya", 1, 0x98, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff}};
 char mnem_hash_tab[0x200];
 /*tablica numerow mnemonikow dla kolejnych wartosci fcji faszujacej
   inicjowana przez init_tabs
@@ -249,7 +235,7 @@ int hextab[256];
 char fcltab[256], labtab[256], fclnum[256], hash_tab[256];
 
 //#include "tab_ini.c"
-int hash_mnem(char *co) {
+int hash_mnem(uint8_t *co) {
   /*haszowanie mneminikow*/
   int h;
   h = (hash_tab[*co] << 4);
@@ -356,7 +342,7 @@ char asctoscr(char c)
   return aincc[c1] | (c & 0x9f);
 }
 
-void error(char *text) {
+void error(const char *text) {
 
   if (!errflg && !fatal)
     return;
@@ -411,7 +397,7 @@ int16_t hash_it(char *co, int16_t ile) {
   };
   return h & 0x07ff;
 }
-int thesame(char *s1, char *s2, char ile)
+int thesame(const char *s1, const char *s2, char ile)
 /* porownywanie bez wzgledu na wielkosc liter, zwraca 1 gdy takie same */
 {
   register char i, c1, c2;
@@ -502,8 +488,7 @@ int ref_label(char *eptr, char ile)
   return 0; /*nie ma*/
 }
 
-int is_label(char *eptr, char ile, int16_t *value, int16_t val, int def,
-             int tmp)
+int is_label(char *eptr, char ile, int16_t *value, int16_t val, int def, int tmp)
 
 /* sprawdza czy jest etykieta wskazywana przez eptr o dlug. ile
     -jesli nie ma to dolancza
@@ -599,18 +584,15 @@ struct lab *lab_insert(struct lab *orderlist, struct lab *labptr) {
     labptr->next = NULL;
     return labptr;
   }
-  if ((cmp = strnicmp(lbpt->gdzie, labptr->gdzie,
-                      (lbpt->lenght > labptr->lenght) ? labptr->lenght
-                                                      : lbpt->lenght)) > 0 ||
+  if ((cmp = strnicmp(lbpt->gdzie, labptr->gdzie, (lbpt->lenght > labptr->lenght) ? labptr->lenght : lbpt->lenght)) >
+          0 ||
       cmp == 0 && lbpt->lenght >= labptr->lenght) {
     labptr->next = lbpt;
     return labptr;
   }
   while (lbpt->next != NULL &&
          ((cmp = strnicmp(lbpt->next->gdzie, labptr->gdzie,
-                          (lbpt->next->lenght > labptr->lenght)
-                              ? labptr->lenght
-                              : lbpt->next->lenght)) < 0 ||
+                          (lbpt->next->lenght > labptr->lenght) ? labptr->lenght : lbpt->next->lenght)) < 0 ||
           cmp == 0 && lbpt->next->lenght < labptr->lenght))
     lbpt = lbpt->next;
   labptr->next = lbpt->next;
@@ -635,8 +617,7 @@ void printlabels(void) {
   cnt = 0;
   while (orderlist != NULL) {
     if (!fatal) {
-      memmove((void *)strbuf, (void *)orderlist->gdzie,
-              (l = orderlist->lenght));
+      memmove((void *)strbuf, (void *)orderlist->gdzie, (l = orderlist->lenght));
       strbuf[l] = 0;
       fprintf(flist, " %04X %s", orderlist->labvalue, strbuf);
       if (!((++cnt) & 3))
@@ -998,8 +979,7 @@ int evaluate(int pocz, int ile, int16_t *wynik) {
             i++;
           if (i == firstchar)
             return 0; /*zla skladnia*/
-          ns[nsp++] =
-              is_label(&bufor[firstchar], i - firstchar, &firstchar, 0, 0, 0);
+          ns[nsp++] = is_label(&bufor[firstchar], i - firstchar, &firstchar, 0, 0, 0);
           hist[hsp++] = 'n';
           break;
         }
@@ -1039,28 +1019,26 @@ int evaluate(int pocz, int ile, int16_t *wynik) {
         break;
 
       case '*':
-        if (((c = hist[hsp - 1]) != 'n' && c != ']') || i == pocz + 1) {
+        if (i == pocz + 1 || ((c = hist[hsp - 1]) != 'n' && c != ']')) {
           ns[nsp++] = adres;
           hist[hsp++] = 'n';
           break;
         }
 
       case '+':
-        if (((c = hist[hsp - 1]) != 'n' && c != ']') || i == pocz + 1)
+        if (i == pocz + 1 || ((c = hist[hsp - 1]) != 'n' && c != ']'))
           break;
       case '-':
-        if (((c = hist[hsp - 1]) != 'n' && c != ']') || i == pocz + 1)
+        if (i == pocz + 1 || ((c = hist[hsp - 1]) != 'n' && c != ']'))
           op = '!';
 
       default:
         if ((lev = level(op)) <= last && !unarny(op) && os[osp - 1] != '[')
           calc(&nsp, &osp);
         if (lev < last && !unarny(op)) {
-          while (os[--osp] != '[' && osp >= 0 && level(os[osp]) >= lev) {
-            osp++;
+          while (osp > 0 && os[osp - 1] != '[' && level(os[osp]) >= lev) {
             calc(&nsp, &osp);
           }
-          osp++;
         }
         os[osp++] = hist[hsp++] = op;
         last = level(op);
@@ -1149,7 +1127,7 @@ char arglen(char first, char last)
 }
 char mnemnr(char first) {
   char m;
-  m = mnem_hash_tab[hash_mnem(&bufor[first])];
+  m = mnem_hash_tab[hash_mnem((uint8_t *)&bufor[first])];
   if (thesame((char *)&bufor[first], (char *)&mnemoniki[m].mnem, 3))
     return m;
   return -1;
@@ -1161,7 +1139,7 @@ char instrlen(char first)
 */
 {
   char m;
-  m = mnem_hash_tab[hash_mnem(&bufor[first])];
+  m = mnem_hash_tab[hash_mnem((uint8_t *)&bufor[first])];
   if (thesame((char *)&bufor[first], (char *)&mnemoniki[m].mnem, 3))
     return mnemoniki[m].mlen;
   return -1;
@@ -1206,8 +1184,7 @@ int cnt_byte(void)
       col++;
       break;
     default:
-      if (c == '%' && bufor[col + 1] == '$' &&
-          inside_macro) { /*text parameter*/
+      if (c == '%' && bufor[col + 1] == '$' && inside_macro) { /*text parameter*/
         col += 2;
         if (paramnr(&col, buflen, &wart) && wart + first_par < psp) {
           if (is_param[first_par + wart] == 2)
@@ -1401,8 +1378,7 @@ void putinstr(char m) {
     error("bad operand");
   } else {
     firstchar = col;
-    while (((c = bufor[col]) != ' ' || bufor[col + 1] != ' ') && c != tab &&
-           c != crt && c != ';')
+    while (((c = bufor[col]) != ' ' || bufor[col + 1] != ' ') && c != tab && c != crt && c != ';')
       col++;
     if (bufor[col - 1] == ' ')
       col--;
@@ -1417,7 +1393,7 @@ void putinstr(char m) {
         error("branch range");
     } else { /* pozostale instrukcje rozpoznanie trybu adresowania */
       mode = adrmode(firstchar, col);
-      mod = mnemoniki[m].modes;
+      mod = (char *)mnemoniki[m].modes;
       switch (mode) {
       case 2: /* akumulatora */
         if ((c = mod[2]) == (char)0xff)
@@ -1656,8 +1632,7 @@ void put_byte(int type)
       break;
 
     default:
-      if (c == '%' && bufor[col + 1] == '$' &&
-          inside_macro) { /*text parameter*/
+      if (c == '%' && bufor[col + 1] == '$' && inside_macro) { /*text parameter*/
         col += 2;
         if (!paramnr(&col, buflen, &wart))
           error("Bad text macro parameter");
@@ -1686,8 +1661,7 @@ void put_byte(int type)
         }
       } else { /* wyrazenie*/
         firstchar = col;
-        while ((c = bufor[++col]) != crt && c != ';' &&
-               (c != ' ' || bufor[col + 1] != ' ') && c != tab && c != ',')
+        while ((c = bufor[++col]) != crt && c != ';' && (c != ' ' || bufor[col + 1] != ' ') && c != tab && c != ',')
           ;
         evaluate(firstchar, col, &wart);
         if (wart < -128 || wart > 255)
@@ -1719,8 +1693,7 @@ dbyteflg rowny 0 gdy uzyto dyrektywy word
     col++;
   while ((c = bufor[col]) != crt) {
     firstchar = col;
-    while ((c = bufor[++col]) != crt && c != ';' &&
-           (c != ' ' || bufor[col + 1] != ' ') && c != tab && c != ',')
+    while ((c = bufor[++col]) != crt && c != ';' && (c != ' ' || bufor[col + 1] != ' ') && c != tab && c != ',')
       ;
     evaluate(firstchar, col, &wart);
     if (!dbyteflg) { /*.word*/
@@ -1831,8 +1804,7 @@ wyprowadza dane wprowadzone za pomoca dyrektywy .float
     col++;
   while ((c = bufor[col]) != crt) {
     firstchar = col;
-    while ((c = bufor[++col]) != crt && c != ';' &&
-           (c != ' ' || bufor[col + 1] != ' ') && c != tab && c != ',')
+    while ((c = bufor[++col]) != crt && c != ';' && (c != ' ' || bufor[col + 1] != ' ') && c != tab && c != ',')
       ;
     read_float(firstchar, col, fltbuf);
     for (c = 0; c < 6; c++)
@@ -1860,9 +1832,8 @@ int getlabel(void)
   lastchar = col;
   while ((c = bufor[col]) == ' ' || c == tab)
     col++;
-  if (c != '=' && (c != '.' || bufor[col + 1] !=
-                                   '=')) { /* Podstawienie adresu na etykiete */
-    if (asmflg) /* spr. znacznika semblacji warunkowej */
+  if (c != '=' && (c != '.' || bufor[col + 1] != '=')) { /* Podstawienie adresu na etykiete */
+    if (asmflg)                                          /* spr. znacznika semblacji warunkowej */
       (void)is_label((char *)bufor, lastchar, &labval, adres, 1, inside_macro);
     /*                                          1-definicja,
            w macrorozkazie wszystkie etykiety sa tymczasowe.
@@ -1875,8 +1846,7 @@ int getlabel(void)
     while ((c = bufor[col]) == ' ' || c == tab)
       col++;
     firstchar = col;
-    while (((c = bufor[col]) != ' ' || bufor[col + 1] != ' ') && c != tab &&
-           c != crt && c != ';')
+    while (((c = bufor[col]) != ' ' || bufor[col + 1] != ' ') && c != tab && c != crt && c != ';')
       col++;
     /* Podstawienie wartosci na etykiete */
     if (asmflg) /* spr. znacznika asemblacji warunkowej */
@@ -1912,9 +1882,8 @@ int checklabel(void)
   lastchar = col;
   while ((c = bufor[col]) == ' ' || c == tab)
     col++;
-  if (c != '=' &&
-      (c != '.' || bufor[col + 1] != '=')) { /* spr i ew. dodaje etykiete */
-    if (asmflg) /* spr znacznika asemblacji warunkowej */
+  if (c != '=' && (c != '.' || bufor[col + 1] != '=')) { /* spr i ew. dodaje etykiete */
+    if (asmflg)                                          /* spr znacznika asemblacji warunkowej */
     {
       if (is_label((char *)bufor, lastchar, &lbv, adres, 1, inside_macro) &&
           lbv != adres) /*gdy macrorozkaz to wszystkie sa localne*/
@@ -1931,13 +1900,11 @@ int checklabel(void)
     while ((c = bufor[col]) == ' ' || c == tab)
       col++;
     firstchar = col;
-    while (((c = bufor[col]) != ' ' || bufor[col + 1] != ' ') && c != tab &&
-           c != crt && c != ';')
+    while (((c = bufor[col]) != ' ' || bufor[col + 1] != ' ') && c != tab && c != crt && c != ';')
       col++;
     if (asmflg) {
       if (evaluate(firstchar, col, &labval)) {
-        if (is_label((char *)bufor, lastchar, &lbv, labval, 1, tmp) &&
-            lbv != labval && !tmp)
+        if (is_label((char *)bufor, lastchar, &lbv, labval, 1, tmp) && lbv != labval && !tmp)
           error("Phase error");
       } else
         (void)is_label((char *)bufor, lastchar, &lbv, labval, 2, tmp);
@@ -1968,10 +1935,8 @@ void getinstruction(void) {
         return;
       }
       i = col;
-      while (
-          ((c = bufor[col]) != ' ' || bufor[col + 1] != ' ') && c != ',' &&
-          c != tab && c != crt &&
-          c != ';' ////dodalej spr. ';' - poprawka bledu z lsr a i komentarzem
+      while (((c = bufor[col]) != ' ' || bufor[col + 1] != ' ') && c != ',' && c != tab && c != crt &&
+             c != ';' ////dodalej spr. ';' - poprawka bledu z lsr a i komentarzem
       )
         col++;
       len = arglen(i, col) + 1;
@@ -2007,8 +1972,7 @@ void asm_if(void)
   while ((c = bufor[col]) == ' ' || c == tab)
     col++;
   firstchar = col;
-  while (((c = bufor[col]) != ' ' || bufor[col + 1] != ' ') && c != tab &&
-         c != crt && c != ';')
+  while (((c = bufor[col]) != ' ' || bufor[col + 1] != ' ') && c != tab && c != crt && c != ';')
     col++;
 
   if (evaluate(firstchar, col, &value)) {
@@ -2068,11 +2032,10 @@ void include(int what) {
   if (c == '#') {
     col++;
     firstchar = col;
-    while (((c = bufor[col]) != ' ' || bufor[col + 1] != ' ') && c != ';' &&
-           c != crt && c != tab)
+    while (((c = bufor[col]) != ' ' || bufor[col + 1] != ' ') && c != ';' && c != crt && c != tab)
       col++;
     c = bufor[col];
-    char *fname = alloca(col + 1 - firstchar);
+    char *fname = (char *)alloca(col + 1 - firstchar);
     strncpy(fname, &bufor[firstchar], col - firstchar);
     fname[col - firstchar] = 0;
     strup(fname);
@@ -2089,7 +2052,7 @@ void include(int what) {
         error("include stack full");
         fclose(plik);
       } else {
-        pth = m_alloc(strlen(sciezka) + 1);
+        pth = (char *)m_alloc(strlen(sciezka) + 1);
         strcpy(pth, sciezka);
         filestack[fsp++] = source;
         fpthstack[fsp - 1] = filepath;
@@ -2122,7 +2085,7 @@ void rept(int ph) {
   }
   while ((c = bufor[col]) == ' ' || c == tab)
     col++;
-  if (!getnumber(&col, buflen, &cnt_rept)) {
+  if (!getnumber(&col, buflen, (int16_t *)&cnt_rept)) {
     if (ph)
       error("bad syntax");
     return;
@@ -2131,7 +2094,7 @@ void rept(int ph) {
   if (!ph)
     beg_rept = adres;
   else {
-    rept_buf = m_alloc(max_rept_block);
+    rept_buf = (char(*)[])m_alloc(max_rept_block);
     rept_len = 0;
   }
 }
@@ -2146,9 +2109,7 @@ void endr(int ph) {
   }
   reptflg = 0;
   if (!ph)
-    adres += adres - beg_rept <= max_rept_block
-                 ? (cnt_rept - 1) * (adres - beg_rept)
-                 : max_rept_block;
+    adres += adres - beg_rept <= max_rept_block ? (cnt_rept - 1) * (adres - beg_rept) : max_rept_block;
   else {
     if (rept_len > max_rept_block) {
       error("rept block longer than $2000");
@@ -2309,7 +2270,7 @@ int read_param(void) {
         return licz;
       }
       param[psp] = (wart = col - firstchar);
-      text = m_alloc(wart);
+      text = (char *)m_alloc(wart);
       memmove(text, &bufor[firstchar], wart);
       text_param[psp] = text;
       is_param[psp++] = 2; /*textowy*/
@@ -2317,8 +2278,7 @@ int read_param(void) {
 
     default:
       firstchar = col;
-      while ((c = bufor[++col]) != crt && c != ';' &&
-             (c != ' ' || bufor[col + 1] != ' ') && c != tab && c != ',')
+      while ((c = bufor[++col]) != crt && c != ';' && (c != ' ' || bufor[col + 1] != ' ') && c != tab && c != ',')
         ;
       if (psp == max_psp) {
         if (phase == 2)
@@ -2356,9 +2316,9 @@ void macro_def(void) {
   col++;
   while (labtab[bufor[col]])
     col++;
-  mptr = m_alloc(sizeof(struct macro));
+  mptr = (struct macro *)m_alloc(sizeof(struct macro));
   mptr->namelen = col - firstchar;
-  mptr->mname = m_alloc(mptr->namelen);
+  mptr->mname = (char *)m_alloc(mptr->namelen);
   memmove(mptr->mname, &bufor[firstchar], mptr->namelen);
   mptr->mbody = NULL;
   mptr->last_line = NULL;
@@ -2373,14 +2333,14 @@ void macro_def(void) {
     if (thesame(&line_bufor[col], ".endm", 5))
       break;
     if (mptr->mbody == NULL) {
-      mptr->mbody = m_alloc(sizeof(struct macroline));
+      mptr->mbody = (struct macroline *)m_alloc(sizeof(struct macroline));
       mptr->last_line = mptr->mbody;
     } else {
-      mptr->last_line->nxt = m_alloc(sizeof(struct macroline));
+      mptr->last_line->nxt = (struct macroline *)m_alloc(sizeof(struct macroline));
       mptr->last_line = mptr->last_line->nxt;
     }
     mptr->last_line->nxt = NULL;
-    mptr->last_line->linebody = m_alloc(ile + 1);
+    mptr->last_line->linebody = (char *)m_alloc(ile + 1);
     memmove(mptr->last_line->linebody, bufor, ile + 1);
   } while (1);
   mptr->next = NULL;
@@ -2435,8 +2395,8 @@ void macro_analizing(struct macro *mptr) {
   first_param = psp++;
   prev_first = first_par;
   first_par = first_param;
-  param[first_par] = read_param(); /* param zero ilosc parametrow*/
-  text_param[first_par] = m_alloc(mptr->namelen); /*oraz nazwa makro*/
+  param[first_par] = read_param();                        /* param zero ilosc parametrow*/
+  text_param[first_par] = (char *)m_alloc(mptr->namelen); /*oraz nazwa makro*/
   memmove(text_param[first_par], mptr->mname, mptr->namelen);
   is_param[first_par] = 2;
 
@@ -2479,7 +2439,7 @@ void put_macro(char firstchar) {
     first_par = first_param;
     param[first_par] = read_param();
     /* param zero ilosc parametrow*/
-    text_param[first_par] = m_alloc(mptr->namelen);
+    text_param[first_par] = (char *)m_alloc(mptr->namelen);
     /*oraz nazwa makro*/
     memmove(text_param[first_par], mptr->mname, mptr->namelen);
     is_param[first_par] = 2;
@@ -2540,18 +2500,15 @@ struct macro *mac_insert(struct macro *orderlist, struct macro *mptr) {
     mptr->next = NULL;
     return mptr;
   }
-  if ((cmp = strnicmp(mcrpt->mname, mptr->mname,
-                      (mcrpt->namelen > mptr->namelen) ? mptr->namelen
-                                                       : mcrpt->namelen)) > 0 ||
+  if ((cmp = strnicmp(mcrpt->mname, mptr->mname, (mcrpt->namelen > mptr->namelen) ? mptr->namelen : mcrpt->namelen)) >
+          0 ||
       cmp == 0 && mcrpt->namelen >= mptr->namelen) {
     mptr->next = mcrpt;
     return mptr;
   }
   while (mcrpt->next != NULL &&
          ((cmp = strnicmp(mcrpt->next->mname, mptr->mname,
-                          (mcrpt->next->namelen > mptr->namelen)
-                              ? mptr->namelen
-                              : mcrpt->next->namelen)) < 0 ||
+                          (mcrpt->next->namelen > mptr->namelen) ? mptr->namelen : mcrpt->next->namelen)) < 0 ||
           cmp == 0 && mcrpt->next->namelen < mptr->namelen))
     mcrpt = mcrpt->next;
   mptr->next = mcrpt->next;
@@ -2578,8 +2535,7 @@ void printmacros(void) {
   cnt = 0;
   while (orderlist != NULL) {
     if (!fatal) {
-      memmove((void *)strbuf, (void *)orderlist->mname,
-              (l = orderlist->namelen));
+      memmove((void *)strbuf, (void *)orderlist->mname, (l = orderlist->namelen));
       strbuf[l] = 0;
       fprintf(flist, " %s", strbuf);
       if (!((++cnt) & 3))
@@ -2626,10 +2582,9 @@ void analizing(void) {
       while ((c = bufor[col]) == ' ' || c == tab)
         col++;
       firstchar = col;
-      while (((c = bufor[col]) != ' ' || bufor[col + 1] != ' ') && c != ';' &&
-             c != crt && c != tab)
+      while (((c = bufor[col]) != ' ' || bufor[col + 1] != ' ') && c != ';' && c != crt && c != tab)
         col++;
-      if (!evaluate(firstchar, col, &adres))
+      if (!evaluate(firstchar, col, (int16_t *)&adres))
         ;
       /*  error ("can't evaluate new value for *=");*/
       break;
@@ -2752,10 +2707,9 @@ void putcode(void) {
       while ((c = bufor[col]) == ' ' || c == tab)
         col++;
       firstchar = col;
-      while (((c = bufor[col]) != ' ' || bufor[col + 1] != ' ') && c != ';' &&
-             c != crt && c != tab)
+      while (((c = bufor[col]) != ' ' || bufor[col + 1] != ' ') && c != ';' && c != crt && c != tab)
         col++;
-      if (!evaluate(firstchar, col, &adres))
+      if (!evaluate(firstchar, col, (int16_t *)&adres))
         error("cant' evaluate new value for *=");
       if (reptflg)
         error("*= inside rept");
@@ -2953,8 +2907,7 @@ int set_pth(char *pth) { return _chdir(pth); }
 
 int main(int argc, const char *argv[]) {
   char *param;
-  static char srcpth[_MAX_PATH + 1], dstpth[_MAX_PATH + 1],
-      thispth[_MAX_PATH + 1];
+  static char srcpth[_MAX_PATH + 1], dstpth[_MAX_PATH + 1], thispth[_MAX_PATH + 1];
   const char endinfo[] = "\n %ld lines assembled, %d assembly error(s).\n";
   int i, j, k, bsl, symbol;
   printf("%s", our5oft);
@@ -2979,9 +2932,7 @@ int main(int argc, const char *argv[]) {
     return 0;
   } else {
     /* otwieramy source */
-    for (i = 1; i < argc &&
-                (*(param = (char *)argv[i]) == '-' || *param == '/') && !fatal;
-         i++)
+    for (i = 1; i < argc && (*(param = (char *)argv[i]) == '-' || *param == '/') && !fatal; i++)
       ;
     if (i == argc && !fatal) {
       fatal = 1;
@@ -3014,9 +2965,7 @@ int main(int argc, const char *argv[]) {
       //       strcpy(srcpth,sciezka);
       strcpy(sciezka, srcpth);
     } /*bierzemy parametry*/
-    for (i = 1; i < argc &&
-                (*(param = (char *)argv[i]) == '-' || *param == '/') && !fatal;
-         i++) {
+    for (i = 1; i < argc && (*(param = (char *)argv[i]) == '-' || *param == '/') && !fatal; i++) {
       param++;
       switch (*param) {
       case 'L':
@@ -3111,7 +3060,7 @@ int main(int argc, const char *argv[]) {
     }
     strcpy(dstpth, sciezka);
   }
-  buf_out.bytes = m_alloc(buf_out_len);
+  buf_out.bytes = (char(*)[])m_alloc(buf_out_len);
   if (!fatal) {
     setflags(lstf);
     line = adres = fsp = 0;
