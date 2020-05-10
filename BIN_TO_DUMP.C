@@ -1,3 +1,17 @@
+// This tool will load Atari executable file into an array
+// of 65536 bytes and then store this array to the output file.
+//
+// Atari 8-bit binary load file (executable)
+// consists of one or more segments whose format as listed below.
+// The first segment must begin with two 255's ($FF) bytes to indicate
+// it is a binary load file.  For later segments the 255 header is optional.
+//
+// Offset into segment	Description
+// 0-1	255,255 ($FF $FF)  Indicates a binary load file.  Mandatory for first segment, optional for any other segment
+// 2-3 (or 0-1)	Start Address.  The segment will load at this address
+// 4-5 (or 2-3)	End Address.   The last byte to load for this segment
+// 6-? (or 4-?)	The actual segment data to load (End Address-Start Address + 1 bytes)
+
 // compiled with gcc (Ubuntu 5.5.0-12ubuntu1~16.04) 5.5.0 20171010
 // gcc -x c  OMC_MAIN.C -o omc
 /*#define atariST*/
