@@ -1,0 +1,1876 @@
+         .OPT NO LIST
+TRACK    =   $80
+TRLEN    =   $81
+BUF      =   $82
+RPRZPLADR =  $84
+SECLEN   =   $86
+TRBUF    =   $88
+BANKI    =   $8A
+BANKS    =   $8B
+TRACK2   =   $8C
+SOURCE   =   $8D
+DEST     =   $8E
+ORA      =   $8F
+SEC.TRACK =  $90
+OVER     =   $91
+X        =   $92
+TRADC    =   $93
+ENDFLG   =   $95
+GESTOSC  =   $96
+X2       =   $97
+TRMAX    =   $98
+FIRSTFLG =   $99
+ANFLG    =   $9A
+OLDTRACK =   $9B
+ADRH     =   $9C
+SMIEC    =   $9E
+SMIEC2   =   $9F
+FORM     =   $A0
+TARG     =   $A1
+DOSFLG   =   $A2
+DOSFLG2  =   $A3
+RAMER    =   $A4
+RAMER2   =   $A5
+IBMFLG   =   $A6     0-IBM,1-ATARI
+PPLOTR   =   $A7
+PPLOTW   =   $A8
+PPLOT    =   $A9
+PBUF     =   END
+DRVTBL2  =   END+$01C0
+VT1      =   END+$0500
+VT2      =   END+$0700
+;VTOC =  $0340
+DRVTBL   =   $03E0
+PRZEPLG  =   $C8
+PRZEPLP  =   $E2
+         *=  $0A00
+POM      =   $C0
+S        =   0
+D        =   1
+E        =   26
+I        =   2       ;i 180 kb
+I2       =   3       ;360 kb dwustronny
+C        =   4       ;720 kb ST&IBM
+A3       =   5       ;360 kb ;XF551
+A7       =   6       ;720 kb ;TOMS
+TRBUF2   =   TO0+1
+BUFPOCZ  =   $C4
+CMD      =   $0302
+BUFPOCZ2 =   TO1+1
+END1     =   $00
+END3     =   $8001
+KONIEC1  =   $00
+KONIEC2  =   $D000
+KONIEC3  =   $8000
+SEC      =   $030A
+SPEED    =   $0126
+JGEN     JSR GENERATOR
+POCZATEK.PROGRAMU
+         LDA $D01F
+         CMP #3
+         BNE NIEBOOT
+         JMP $E477
+NIEBOOT
+         LDA # <POCZATEK.PROGRAMU
+         STA $0C
+         LDA # >POCZATEK.PROGRAMU
+         STA $0D
+         LDX #1
+         STX $09
+         STX $0301
+         DEX 
+         STX $0244
+         STX $03F0
+         STX $03F1
+         JSR $014F
+         LDA #$04
+         STA 756
+         JSR CLEARMAP
+         JSR CLEARSEC
+         JSR CLR
+         JSR VIDEO
+         LDA DOSFLG
+         STA DOSFLG2
+         LDA #18
+         STA SEC.TRACK
+         LDA #1
+         STA SOURCE
+         STA DEST
+         LDX TARG
+         BEQ JSRDN
+         CPX #1
+         BNE Z2DO1
+         INX 
+         STX DEST
+         BNE JSRDN
+Z2DO1    STX SOURCE
+JSRDN
+         LDA SOURCE
+         CLC 
+         ADC #$30
+         STA $0300
+         JSR PRZEPLOTY
+         STA PPLOTR
+         JSR DENSITY
+         TYA 
+         BPL ARSE
+         JMP POCZATEK.PROGRAMU
+ARSE     LDY GESTOSC
+         CPY #26
+         BNE CX0
+         LDY #1
+         BNE MNN0
+CX0      CPY #1
+         BCC MNN0
+         INY 
+MNN0
+         LDA DRVTBL+3
+         STA SEC.TRACK
+         LDA RPRZEPL,Y
+         STA RPRZPLADR
+         LDA RPRZEPH,Y
+         STA RPRZPLADR+1
+         LDA DOSFLAGS,Y
+         STA IBMFLG
+         BNE DO.1
+         STY PPLOTR  ;Y<>0
+         STA DOSFLG2
+DO.1
+         LDA LENSECL,Y
+         STA SECLEN
+         LDA LENSECH,Y
+         STA SECLEN+1
+         LDA TRLENS,Y
+         STA TRLEN
+         LDA MAXTR,Y
+         STA TRMAX
+         LDA DILES,Y
+         STA DILE+1
+         CPY #2
+         BCS BIG
+         JSR BUFSMALL
+         JMP B.F0
+BIG      JSR BUFBIG
+B.F0     TYA 
+         JSR SHDENS
+         LDA DOSFLG2
+         BEQ DD3.2
+         JSR DOSCOPY
+DD3.2
+         SEC 
+         LDA #$00
+         SBC TRLEN
+         STA EEND1+1
+         SEC 
+         LDA #$80
+         SBC TRLEN
+         STA EEND3+1
+         CLC 
+         LDA # >END
+         ADC #2
+         STA BUFPOCZ+1
+         STA TRBUF+1
+         LDX #0
+         ;           LDA #<END
+         STX BUFPOCZ
+         STX TRBUF
+         STX TRACK
+         STX TRACK2
+         STX ANFLG
+         STX ENDFLG
+         DEX 
+         STX FIRSTFLG
+         ;           LDA # <PRZEPLG
+         ;           STA MPRZ+1
+         ;           LDA # >PRZEPLG
+         ;           STA MPRZ+2
+         ;           JSR PRZEPLOTY
+         JMP READ0.1 ;BEQ READ0.1
+         ;           JMP POCZATEK.PROGRAMU
+READ0
+         LDA SOURCE
+         CMP DEST
+         BNE NOQUEST
+         JSR CLEARSEC
+         LDA #0
+         JSR SSTARTS
+         JSR INSR
+         LDA #1
+         JSR KONSOLA
+         LDA ANFLG
+         BEQ JPU
+         LDA OLDTRACK
+         STA TRACK2
+         DEC ANFLG
+         DEC FIRSTFLG
+         JMP ZAPIS
+JPU      JSR PUTILL
+NOQUEST
+READ0.1
+         LDA PPLOTR
+         STA PPLOT
+         LDA TRACK
+         STA OLDTRACK
+         LDX #0
+         STX OVER
+         STX BANKI
+         ;           DEX
+         ;           STX $D301
+         ;           LDA # <PRZEPLG
+         ;           STA MPRZ2+1
+         ;           LDA # >PRZEPLG
+         ;           STA MPRZ2+2
+         LDA BUFPOCZ
+         STA BUFPOCZ2
+         LDA BUFPOCZ+1
+         STA BUFPOCZ2+1
+         LDA #$07
+         STA $0306
+READ
+         JSR ROMON
+         LDA BUFPOCZ2+1
+         STA TRBUF+1
+         LDA BUFPOCZ2
+         STA TRBUF
+         LDA #$52
+         STA CMD
+         LDA SOURCE
+         CLC 
+         ADC #$30
+         STA $0300
+         LDA RPRZPLADR
+         STA PRZEPLADR+1
+         LDA RPRZPLADR+1
+         STA PRZEPLADR+2
+         JSR TRREAD
+         LDA TRACK
+         JSR IOTRACK
+         LDA TRBUF
+         STA TRBUF2
+         LDA TRBUF+1
+         STA TRBUF2+1
+         LDY BANKI
+         LDA CHTAB,Y
+         AND #$FE
+         STA RAMER
+         STA RAMER2
+         JSR ROMOFF
+         LDX #$00
+DD3.5    INX 
+         STX X2
+         LDA #0
+         STA ORA
+         LDX SECLEN+1
+LDY0     STX SMIEC
+         LDX RAMER2
+         LDY SECLEN
+DEY      DEY 
+         LDA RAMER
+         STA $D301
+TO0      LDA $FFFF,Y
+         STX $D301
+TO1      STA $FFFF,Y
+         ORA ORA
+         STA ORA
+         TYA 
+         BNE DEY
+         LDA SMIEC
+         TAX 
+         DEX 
+         BMI CLC2
+         BEQ CLC1
+         INC TRBUF2+1
+         INC BUFPOCZ2+1
+         JMP LDY0
+CLC1     LDA IBMFLG
+         BNE CLC2
+         DEC BUFPOCZ2+1
+         DEC TRBUF2+1
+CLC2     CLC 
+         LDA TRBUF2
+         ADC SECLEN
+         STA TRBUF2
+         LDA TRBUF2+1
+         ADC SECLEN+1
+         CMP #$D0
+         BNE TA0
+         LDA #$D8
+TA0
+         CMP #$00
+         BNE TA1
+         LDY BANKS
+         JMP TA3
+TA1      LDY OVER
+         BEQ TA2
+         CMP #$80
+         BNE TA2
+         LDY BANKI
+         DEY 
+TA3      LDA CHTAB,Y
+         AND #$FE
+         STA RAMER
+         LDA #$40
+TA2      STA TRBUF2+1
+         LDA DOSFLG2
+         BEQ CHECKOR
+         LDA TRACK
+         JSR PRZELICZ
+         JSR PRZELICZ2
+         JSR CHECKFUL
+         BEQ DD4
+         BNE CLC0
+CHECKOR  LDA ORA
+         BEQ DD4
+CLC0     CLC 
+         LDA BUFPOCZ2
+         ADC SECLEN
+         STA BUFPOCZ2
+         LDA BUFPOCZ2+1
+         ADC SECLEN+1
+         STA BUFPOCZ2+1
+         JSR SPRAWDZ
+         LDA TRACK
+         JSR PRZELICZ
+         JSR PRZELICZ2
+         JSR SETFULL
+DD4
+         LDX X2
+         CPX SEC.TRACK
+         BCS T6
+         JMP DD3.5
+T6
+         JSR ROMON
+         LDX ENDFLG
+         BEQ NE0
+         DEX 
+         STX ENDFLG
+         BEQ JZAP
+NE0      LDX TRACK
+         CPX TRMAX
+         BNE INX
+JZAP     JMP ZAPIS
+INX      INX 
+         STX TRACK
+         LDA OVER
+         BEQ JSRDOD
+         JSR OVER0
+         BNE JZAP
+         JMP READ
+JSRDOD   JSR DODAJ
+         BNE JZAP
+         JMP READ
+DODAJ
+         LDA BANKS
+         BNE ADLEND3
+         LDA BUFPOCZ2+1
+EEND1    CMP # >END1
+         BCC ADLEND3
+         BNE KONCZ
+         LDA BUFPOCZ2
+         CMP # <END1
+         BCC ADLEND3
+KONCZ    LDA #$01
+         RTS 
+ADLEND3  LDA #0
+         RTS 
+OVER0
+         LDA BANKI
+         CMP #2
+         BCS ADLEND3
+         LDA BUFPOCZ2+1
+EEND3    CMP # >END3
+         BCC ADLEND3
+         BNE KONCZ
+         LDA BUFPOCZ2
+         CMP # <END3
+         BCC ADLEND3
+         BCS KONCZ
+SPRAWDZ
+         LDA OVER
+         BNE OVERY
+         LDA BUFPOCZ2+1
+KON1H    CMP # >KONIEC1
+         BNE NIEK1
+K1       LDA #$40
+         STA BUFPOCZ2+1
+         LDY #1
+         STY OVER
+         LDY BANKS
+         STY BANKI
+         LDA CHTAB,Y
+         AND #$FE
+         STA $D301
+         STA RAMER2
+         RTS 
+NIEK1
+         LDA BUFPOCZ2+1
+KON2H    CMP # >KONIEC2
+         BNE NIEK2
+K2       LDA #$D8
+         STA BUFPOCZ2+1
+NIEK2    RTS 
+OVERY
+         LDA BANKI
+         CMP #2
+         BCC NIEK3
+         LDA BUFPOCZ2+1
+KON3H    CMP # >KONIEC3
+         BNE NIEK3
+K3       LDA #$40
+         STA BUFPOCZ2+1
+         DEC BANKI
+         LDY BANKI
+         LDA CHTAB,Y
+         AND #$FE
+         STA $D301
+         STA RAMER2
+NIEK3    RTS 
+ZAPIS
+;   JSR CLEARTRACK
+         LDX #0
+         STX OVER
+         STX BANKI
+         DEX 
+         STX $D301
+         CLC 
+         LDA DEST
+         ADC #$30
+         STA $0300
+         LDA SOURCE
+         CMP DEST
+         BNE NOQUEST2
+         LDA #1
+         JSR SSTARTS
+         JSR INDS
+         LDA #0
+         JSR KONSOLA
+NOQUEST2
+         ;           LDA # <PRZEPLP
+         ;           STA MPRZ+1
+         ;           STA MPRZ2+1
+         ;           LDA # >PRZEPLP
+         ;           STA MPRZ+2
+         ;           STA MPRZ2+2
+         INC FIRSTFLG
+         BNE WRITE0
+         LDA FORM
+         CMP #2
+         BNE TAY0
+         CLC 
+         LDA #$30
+         ADC DEST
+         STA $0300
+         JSR PRZEPLOTY
+         STA PPLOTW
+         LDA #78
+         STA $0302
+         LDA # <DRVTBL2
+         STA $0304
+         LDA # >DRVTBL2
+         STA $0305
+         LDA #12
+         STA $0308
+         LDA #0
+         STA $0309
+         LDA #$40
+         STA $0303
+         JSR $E459
+         LDA DRVTBL+3
+         CMP DRVTBL2+3
+         BNE NZZ0
+         LDA DRVTBL+6
+         CMP DRVTBL2+6
+         BEQ WRITE0.2 ;BNE NZZ0
+         ;           LDA DRVTBL+0
+         ;           CMP DRVTBL2+0
+         ;           BNE NZZ0
+         ;           LDA DRVTBL+4
+         ;           CMP DRVTBL2+4
+         ;           BEQ WRITE0.2
+NZZ0     DEC FIRSTFLG
+         JMP ZAPIS
+TAY0     TAY 
+         STA PPLOTW
+         BEQ JF
+         LDA #$31
+         STA SPEED
+JF       JSR FORMAT
+WRITE0.2
+         JSR PUTILL
+         LDX IBMFLG  ; JSR PRZEPLOTY
+         BNE WRITE0  ; BEQ WRITE0
+         INX         ;     DEC FIRSTFLG
+         STX PPLOTW  ;JMP ZAPIS
+WRITE0
+         LDA PPLOTW
+         STA PPLOT
+         LDA BUFPOCZ+1
+         STA BUFPOCZ2+1
+         LDA BUFPOCZ
+         STA BUFPOCZ2
+         JSR PUTILL  ƒ◊¡†“¡⁄Ÿ†°°°
+WRITE
+         LDA BUFPOCZ2
+         STA TRBUF
+         LDA BUFPOCZ2+1
+         STA TRBUF+1
+         JSR ROMON
+         LDA #$50
+         STA CMD
+         JSR TRWRIT
+         LDA TRACK2
+         JSR IOTRACK
+         LDY SEC.TRACK
+         STY SMIEC
+         JSR ROMOFF
+         INC TRADC
+         LDA TRADC
+         STA SEC
+         BNE T8
+         INC TRADC+1
+T8       LDA TRADC+1
+         STA SEC+1
+T7       JSR CHECKFUL
+         BEQ DY
+         LDA BUFPOCZ2
+         CLC 
+         ADC SECLEN
+         STA BUFPOCZ2
+         LDA BUFPOCZ2+1
+         ADC SECLEN+1
+         STA BUFPOCZ2+1
+         JSR SPRAWDZ
+DY
+         INC SEC
+         BNE DY2
+         INC SEC+1
+DY2      DEC SMIEC
+         BNE T7
+         JSR ROMON
+         LDX ENDFLG
+         BEQ NE1
+         LDA TRACK
+         STA TRACK2
+         DEX 
+         STX ENDFLG
+         BEQ JR0
+NE1      LDX TRACK2
+         CPX TRMAX
+         BEQ KONIEC0.9
+         INX 
+         STX TRACK2
+         LDA OVER
+         BEQ JSRDOD2
+         JSR OVER0
+         BEQ JW
+JR0      JMP READ0
+JSRDOD2  JSR DODAJ
+         BNE JR0
+JW       JMP WRITE
+KONIEC0.9
+         LDA #0
+         JSR MVDONE
+         JSR CLEARSEC
+         JSR CLR
+         LDA #1
+         JSR KONSOLA
+         LDA ANFLG
+         BEQ KONIEC
+         DEC ANFLG
+         DEC FIRSTFLG
+         LDA OLDTRACK
+         STA TRACK2
+         JMP ZAPIS
+KONIEC
+         JSR PUTMESS
+         JSR PUTDONE
+         JSR DONESO
+;   JSR DONESO
+         JSR DONESO
+         JMP RESTART
+PRZELICZ
+         STA SMIEC
+         LDA #0
+         STA TRADC
+         LDX #8
+CYKL     LSR SMIEC
+         BCC NIEED
+         CLC 
+         ADC SEC.TRACK
+NIEED    ROR A
+         ROR TRADC
+         DEX 
+         BNE CYKL
+         STA TRADC+1
+RTS2     RTS 
+IOTRACK  JSR PRZELICZ
+         LDX #$FF
+         STX X
+DD7      INC X
+NOINC    LDX X
+         CPX SEC.TRACK
+         BNE PRZEPLADR
+         RTS 
+PRZEPLADR LDY $FFFF,X
+MPRZ2    ;           LDA PRZEPLG,Y
+         LDA PPLOT
+         BNE Y.A
+         TXA 
+         TAY 
+         INY 
+Y.A      TYA         ; TAY CHWILOWO!!!!!!!
+         CLC 
+         ADC TRADC
+         STA SEC
+         LDA TRADC+1
+         ADC #0
+         STA SEC+1
+         LDA CMD
+         CMP #$52
+         BNE PISZ
+         TYA 
+         ASL A
+         LDY SECLEN
+         BEQ DD5.9
+         TAY 
+         INY 
+         INY 
+         BNE DD6
+DD5.9    ASL A
+         TAY 
+         LDA IBMFLG
+         BNE DD6
+         TYA 
+         ASL A
+         SEC 
+         SBC #4
+         TAY 
+DD6      CLC 
+         LDA TRBUF
+         ADC TABADC0,Y
+         STA SKK2+1
+         LDA TRBUF+1
+         ADC TABADC0+1,Y
+         STA SKK2+2
+         JMP REA
+PISZ
+         DEY 
+         STY SMIEC
+         JSR CHECKFUL
+         BEQ DD7
+         JSR SETADRES
+         LDA #0
+         ROR A
+         CLC 
+         ADC TRBUF
+         STA SKK+1
+         STA SKK3+1
+         TXA 
+         ADC TRBUF+1
+         TAX 
+         JSR CHECKER
+         TXA 
+         STA SKK+2
+         STA SKK3+2
+         LDA #$80
+         STA $0303
+         LDA DEST
+         BNE WRI
+REA
+         LDA DOSFLG2
+         BEQ LDA
+         JSR CHECKFUL
+         BNE LDA
+         JMP DD7
+LDA      LDA #$40
+         STA $0303
+         LDA SOURCE
+WRI      CLC 
+         ADC #$30
+         STA $0300
+         LDA SECLEN
+         STA $0308
+         LDA SECLEN+1
+         STA $0309
+         LDA SEC+1
+         BNE JSRE
+         LDA IBMFLG
+         BEQ JSRE
+         JSR FIRST3
+JSRE     JSR SECNUM
+         JSR IOPROC
+         BMI ER
+         JMP DD7
+ER       JSR ERROR
+         BNE CMP1
+         JMP NOINC
+CMP1     CMP #1
+         BNE CMP2
+         JMP DD7
+CMP2     CMP #2
+         BNE DD8
+RESTART  LDX #$FF
+         TXS 
+         JMP POCZATEK.PROGRAMU
+DD8      CMP #3
+         BEQ DD10
+         JMP NOINC
+DD10     LDA #1
+         STA ENDFLG
+         RTS 
+MAPWORK
+         LDA SEC
+         STA POM
+         AND #$07
+         TAX 
+         LDA SEC+1
+; STA POM+1
+         LSR A
+         ROR POM
+         LSR A
+         ROR POM
+         LSR A
+         ROR POM
+         STA POM+1
+         CLC 
+         LDA POM
+         ADC # <VTOC
+         STA POM
+         LDA POM+1
+         ADC # >VTOC
+         STA POM+1
+         RTS 
+SETFULL
+         JSR MAPWORK
+         LDA BITTBL,X
+         LDY #0
+         ORA (POM),Y
+         STA (POM),Y
+         RTS 
+CHECKFUL
+         JSR MAPWORK
+         LDA BITTBL,X
+         LDY #0
+         AND (POM),Y
+         RTS 
+BITTBL   .BYTE $80,$40,$20,$10,$08,$04,$02,$01
+SETADRES
+         LDY SMIEC
+         BNE JSS
+         LDX #0
+         CLC 
+         RTS 
+JSS      JSR MAPWORK
+         LDY #0
+         LDA BITTBL,X
+         LDX #0
+AND
+         ASL A
+         STA SMIEC2
+         BNE T0
+         ROL A
+         STA SMIEC2
+         DEY 
+         CPY #$FF
+         BNE T0
+         DEC POM+1
+T0       LDA SMIEC2
+         AND (POM),Y
+         BEQ TAK
+         INX 
+TAK
+         LDA SMIEC2
+         DEC SMIEC
+         BNE AND
+         LDA SECLEN+1
+         CMP #1
+         BEQ T3
+         CMP #2
+         BNE T1
+         TXA 
+         ASL A
+         TAX 
+         RTS 
+T1       TXA 
+         LSR A
+         TAX 
+         RTS 
+T3       CLC 
+         RTS 
+CLEARMAP
+         LDA #0
+         LDX #$7F
+DD9      STA VTOC,X
+         STA VTOC+$80,X
+         STA VTOC+$0100,X
+         DEX 
+         BPL DD9
+         RTS 
+DENSITY
+         CLC 
+         LDA SOURCE
+         ADC #$30
+         STA $0300
+         LDA #78
+         STA CMD
+         LDA #$40
+         STA $0303
+         LDA #$0C
+         STA $0308
+         LDA #$00
+         STA $0309
+         LDA # <DRVTBL
+         STA $0304
+         LDA # >DRVTBL
+         STA $0305
+         JSR $E459
+         BMI RTS3
+         LDA DRVTBL+4
+         BEQ JEDNA
+         LDX #0
+         LDA DRVTBL+3
+         CMP #9
+         BNE NOIBM
+         LDX #2
+NOIBM
+         LDA DRVTBL+0
+         CMP #80
+         BNE NO80
+         INX 
+NO80
+         LDA GESTTBL,X
+         BNE STG
+GESTTBL  .BYTE 5,6,3,4
+JEDNA    ;           STRONA
+         LDA DRVTBL+3
+         CMP #26
+         BNE NIEE
+         STA GESTOSC
+RTS3     RTS 
+NIEE
+         LDA DRVTBL+6
+STG      STA GESTOSC
+         RTS 
+DENSITYOUT
+         LDA #79
+         STA CMD
+         LDA #$80
+         STA $0303
+         LDA #12
+         STA $0308
+         LDA #0
+         STA $0309
+         LDA # <DRVTBL
+         STA $0304
+         LDA # >DRVTBL
+         STA $0305
+WRTTBL   JMP $E459
+FORMAT
+         JSR PUTFRMES
+         JSR DENSITYOUT
+         BMI FORERR
+         CLC 
+         LDA DEST
+         ADC #$30
+         STA $0300
+         LDA #$21
+         STA CMD
+         LDA DENSITY
+         CMP #26
+         BNE NIEE3
+         LDA #$22
+         STA CMD
+NIEE3    LDA #$40
+         STA $0303
+         LDA #$90
+         STA $0306
+         LDA #$C0
+         STA $0305
+         LDA #0
+         STA $0304
+         JSR $E459
+         BMI FORERR
+FORMRTS  LDA #$33
+         STA SPEED
+         RTS 
+FORERR   TYA 
+         PHA 
+         JSR DENSITYOUT
+         PLA 
+         STA $0303
+         JSR ERROR
+         BNE CPF1
+         DEC FIRSTFLG
+         PLA 
+         PLA 
+         JMP ZAPIS
+CPF1     CMP #1
+         BEQ FORMRTS
+         CMP #3
+         BEQ FORMRTS
+         LDA #$33
+         STA SPEED
+         JMP RESTART
+PRZELICZ2
+         CLC 
+         LDA X2
+         ADC TRADC
+         STA SEC
+         LDA TRADC+1
+         ADC #0
+         STA SEC+1
+         RTS 
+ROMON
+         LDA #1
+         ORA $D301
+         STA $D301
+         LDA #$C0
+         STA $D40E
+         CLI 
+         RTS 
+ROMOFF
+         LDA #$00
+         STA $D40E
+         SEI 
+         LDA #$FE
+         AND $D301
+         STA $D301
+         RTS 
+FIRST3
+         LDA SEC
+         CMP #4
+         BCS RET
+         LDA #$80
+         STA $0308
+         LDA #0
+         STA $0309
+RET      RTS 
+RPRZEPH  .BYTE  >RPRZEPLS, >RPRZEPLE, >RPRZEPLD, >RPRZEPLI, >RPRZEPLI, >RPRZEPLI, >RPRZEPLD, >RPRZEPLD
+RPRZEPL  .BYTE  <RPRZEPLS, <RPRZEPLE, <RPRZEPLD, <RPRZEPLI, <RPRZEPLI, <RPRZEPLI, <RPRZEPLD, <RPRZEPLD
+LENSECH  .BYTE $00,$00,$01,$02,$02,$02,$01,$01
+LENSECL  .BYTE $80,$80,$00,$00,$00,$00,$00,$00
+TRLENS   .BYTE $09,$0D,$12,$12,$12,$12,$12,$12
+DOSFLAGS .BYTE 1,1,1,0,0,0,1,1
+MAXTR    .BYTE 39,39,39,39,79,159,79,159
+RPRZEPLS .BYTE 1,10,17,9,18,8,15,7,16,6,13,5,14,4,11,3,12,2
+RPRZEPLD .BYTE 17,1,4,7,10,13,16,14,3,6,9,12,15,18,2,5,8,11
+RPRZEPLI .BYTE 1,7,4,2,8,5,3,9,6
+RPRZEPLE .BYTE 5,1,6,2,7,3,8,4,9,14,10,15,11,16,12,17,13,18,23,19,24,20,25,21,26,22
+PC       =   *
+         *=  $0800
+TABADC0
+         .WORD 0,0,$00,$80,$0100,$0180,$0200,$0280,$0300,$0380,$0400,$0480,$0500,$0580,$0600,$0680
+         .WORD $0700,$0780,$0800,$0880,$0900
+         .WORD $0980,$0A00,$0A80,$0B00,$0B80,$0C00,$0C80,$0D00,$0D80,$0E00,$0E80,$0F00,$0F80,$1000,$1080,$1100
+HLPFLG   =   $02DC
+HBUF     =   END
+PMB      =   $0800
+PM       =   PMB+$0180
+PMBASE   =   $D407
+PMCTL    =   $D01D
+VIDEO
+         LDA # <DL
+         STA 560
+         LDA # >DL
+         STA 561
+         LDA #33+4+8
+         STA 559
+         LDA #$C3
+         STA 712
+         STA 710
+         LDA #14
+         STA 709
+         LDA #0
+         LDX #4
+STAPT    STA 704,X
+         DEX 
+         BPL STAPT
+         STA TILL+23
+         STA TILL+24
+         STA TILL+25
+         STA TILL+29
+         STA TILL+30
+         STA TILL+31
+         LDA # >PMB
+         STA PMBASE
+         LDA #20
+         STA $D00C   ô”…⁄≈ÕÇ
+         LDA #3
+         STA PMCTL
+         LDA #59
+         STA $D004
+         LDA #60
+         STA $D005
+         LDA #192
+         STA $D006
+         LDA #195
+         STA $D007
+         JSR CHECKM
+         STA BANKS   LDA #4
+         STA SMIEC
+         ASL A
+         CLC 
+         ADC SMIEC
+         TAX 
+         LDA TBMEM,X
+         STA EKRAM
+         LDA TBMEM+1,X
+         STA EKRAM+1
+         LDA TBMEM+2,X
+         STA EKRAM+2
+         JSR BUFBIG
+         LDA #0
+         JSR SSTARTS
+         JMP VIDEOCONT
+; JSR INSR
+; LDA #0
+; JSR KONSOLA
+; JSR PUTILL
+; RTS
+TBMEM    .SBYTE " 56 72 88104120136152168184200216232248"
+DL       .BYTE $70,$30,$46, <LOGO, >LOGO,$42, <OU, >OU,$30,$4B
+         .WORD LIN
+         .BYTE $10,$01
+DLCL     .WORD EMPTDL
+FULLDL   .BYTE $42, <EKR, >EKR,$40,2,2,2,$30,$4B, <LIN, >LIN,$30
+         .BYTE $4B, <LIN, >LIN,$42, <STLIN, >STLIN,$4B, <LIN, >LIN,$30
+VDL      .BYTE $4B, <LIN, >LIN,$42
+EDL      .WORD MESS
+         .BYTE $4B, <LIN, >LIN,$20
+         .BYTE $4F, <VTOC, >VTOC
+         .BYTE 0,$0F,0,$0F,0,$0F,0,$0F,0,$0F,0,$0F,0,$0F,0,$0F,0,$0F,0,$0F,0,$0F,$20
+         .BYTE 1
+DLCHAN   .WORD DLSHORT
+DLONG    .BYTE $4B, <LIN, >LIN,$50,$42
+BCHAN1   .BYTE  <HBUF, >HBUF,2,2,2,2,2,2,2
+         .BYTE $50,$4B, <LIN, >LIN
+         .BYTE $41, <DL, >DL
+EMPTDL   .BYTE $42, <EKR, >EKR,$70,$70,$70,$70,$00,$4B, <LIN, >LIN,$30
+         .BYTE $4B, <LIN, >LIN,$70,$4B, <LIN, >LIN,$20
+         .BYTE $01, <VDL, >VDL
+DLSHORT  .BYTE $4B, <LIN, >LIN,$50,$42
+BCHAN2   .BYTE  <HBUF, >HBUF,2,2,2,$50,$4B, <LIN, >LIN
+         .BYTE $41, <DL, >DL
+A0       *=  PC
+VIDEOCONT
+         JSR INSR
+         LDA #0
+         JSR KONSOLA
+         JSR PUTILL
+         RTS 
+LOGO     .SBYTE "ÙÔÌÛ†„ÔÈÂÚ†ˆíéê"
+EKR      .SBYTE "DENS: "
+DENS     .SBYTE "             BUF: "
+EKRAM    .SBYTE "    kB  "
+         .SBYTE "  ôœ–‘…œŒ- source "
+TRG1     .SBYTE "1 target "
+TRG2     .SBYTE "1   "
+         .SBYTE "  ô”≈Ã≈√‘- "
+ANOTH    .SBYTE "         "
+FORMS    .SBYTE "           "
+         .SBYTE "  ô†»≈Ã–†- Doscopy :"
+WDOS     .SBYTE "NO         "
+STLIN    .SBYTE "  ô”‘¡“‘°- "
+STSHOW   .SBYTE "Read source         "
+MESS     .SBYTE "                                "
+LIN      .BYTE "ˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇˇ"
+TILL     .SBYTE " Sector:$      Track R:    W:   "
+FORMATS  .SBYTE "TURBO NORMALNO    "
+NOYES    .SBYTE "NO YES"
+OU       .SBYTE " (c) OUR 5OFT  Pultusk 92-01-01 "
+STARTS   .SBYTE "Read source      "
+         .SBYTE "Write destination"
+DENSITIES .SBYTE "singlemediumdoubleIBM SSIBM DSST 720360   720   "
+ERRO     .SBYTE "ERROR:$"
+ERR      .SBYTE "   ”kip “etry ¡bort Œext "
+INSOURCE .SBYTE "Insert source disk"
+INDEST   .SBYTE "Insert destination disk"
+FRMES    .SBYTE "Formatting"
+DONE     .SBYTE "All Done         "
+TBTARG   .SBYTE "111221"
+ANCOPY   .SBYTE "Another copy   "
+FRMT     .SBYTE "Format  :"
+PORTB    =   $D301
+CHECKM
+         LDA #$FF
+         STA PORTB
+         LDA #1
+         STA $4000
+         LDA #$83
+         STA PORTB
+         LDA #$00
+         STA $4000
+         LDA #$FF
+         STA PORTB
+         LDA $4000
+         BEQ XL800
+         LDX #0
+CHPTL
+         INX 
+         LDA CHTAB,X
+         STA PORTB
+         STX $4000
+         LDA #131
+         STA PORTB
+         LDA $4000
+         CMP #1
+         BNE XL400
+         CPX #12
+         BNE CHPTL
+         BEQ XL600
+XL400
+         DEX 
+XL600
+         TXA 
+XL800
+         LDY #$FF
+         STY PORTB
+         RTS 
+CHTAB    .BYTE $FF,131,135,139,143,195,199,203,207,163,167,171,175
+RAMKA    LDA #0
+         LDX #127
+RPTL0
+         STA PM,X
+         DEX 
+         BPL RPTL0
+         LDA #66     ∞±∞∞∞∞±∞
+         LDX #25-4
+RPTL1    STA PM,X
+         INX 
+         CPX #25+34
+         BNE RPTL1
+         LDA #60
+         STA PM+24-4
+         STA PM+34+25
+         STA PM+34+25-5
+         STA PM+34+25-5-3
+         STA PM+34+25-5-3-5
+         STA PM+34+25-5-3-5-3
+         STA PM+34+25+3+5+$08
+         LDA #0
+         STA PM+34+25-6
+         STA PM+34+25-7
+         STA PM+34+25-8-6
+         STA PM+34+25-8-7
+         RTS 
+LONGRAMKA
+         LDA # <DLONG
+         STA DLCHAN
+         LDA # >DLONG
+         STA DLCHAN+1
+         LDA #66
+         LDX #25+34+4+5+$08
+RPTL2    STA PM,X
+         INX 
+         CPX #25+34+4+38+5+$08
+         BNE RPTL2
+         LDA #60
+         STA PM+34+4+25+38+5+$08
+         RTS 
+SHORTRAMKA
+         LDA #66
+         LDX #25+34+4+5+$08
+RPTL3
+         STA PM,X
+         INX 
+         CPX #25+34+4+38-16+5+$08
+         BNE RPTL3
+         LDA #60
+         STA PM+34+4+25+38-16+5+$08
+         LDA # <DLSHORT
+         STA DLCHAN
+         LDA # >DLSHORT
+         STA DLCHAN+1
+         RTS 
+SHDENS
+         ASL A
+         STA SMIEC
+         ASL A
+         CLC 
+         ADC SMIEC
+         TAX 
+         LDY #0
+SHPTL0   LDA DENSITIES,X
+         STA DENS,Y
+         INX 
+         INY 
+         CPY #6
+         BNE SHPTL0
+         RTS 
+KONSOLA
+         STA SMIEC2
+         LDA #0
+         STA $4D     ¡‘‘“
+         JSR PUTMESS
+         JSR SHOWDL
+         LDA SMIEC2
+         BNE RTV
+         JSR FRMTSH
+         JSR INSO
+         JMP RTV1
+RTV
+         JSR ANSHOW
+         JSR ANSHOW
+         JSR INSO
+RTV1
+         LDA 53279
+         CMP #7
+         BNE RTV1
+KONSOLA2 LDA 53279
+         CMP #6
+         BNE NIEST
+         JSR KEYSO
+         JMP HIDEDL
+NIEST
+         CMP #5
+         BEQ SELECT
+         CMP #3
+         BEQ OPTION
+         LDA HLPFLG
+         BEQ KONSOLA2
+         JSR KEYSO
+         INC DOSFLG
+         LDA DOSFLG
+         CMP #2
+         BNE DALL
+         LDA #0
+         STA DOSFLG
+DALL     JSR DOSHOW
+         LDA #0
+         STA HLPFLG
+         JMP KONSOLA2
+SELECT
+         JSR KEYSO
+         LDA SMIEC2
+         BNE RUSEK
+         INC FORM
+         LDA FORM
+         CMP #3
+         BNE DALS0
+         LDA #0
+         STA FORM
+DALS0
+         JSR SHFOR
+         JMP RTV1
+RUSEK
+         LDA #1
+         STA ANFLG
+         JMP HIDEDL
+OPTION
+         JSR KEYSO
+         INC TARG
+         LDA TARG
+         CMP #3
+         BNE DALS1
+         LDA #0
+         STA TARG
+DALS1
+         ASL A
+         TAX 
+         LDA TBTARG,X
+         STA TRG1
+         LDA TBTARG+1,X
+         STA TRG2
+         JMP RTV1
+ERROR
+         LDA EDL
+         STA SMIEC
+         LDA EDL+1
+         STA SMIEC2
+         JSR PUTERR
+         LDA #$FF
+         STA 764
+         LDA $0303
+         LDX # <ERR
+         LDY # >ERR
+         JSR HEX
+         JSR ERRSO
+SPTL6    LDA 764
+         CMP #62     ”
+         BEQ SKIP
+         CMP #40     “
+         BEQ RETRY
+         CMP #63     ·
+         BEQ CANCEL
+         CMP #35
+         BEQ HNEXT
+         JMP SPTL6
+SKIP
+         JSR GETERR
+         LDA #1
+         RTS 
+RETRY
+         JSR GETERR
+         LDA #0
+         RTS 
+CANCEL
+         JSR GETERR
+         LDA #2
+         RTS 
+HNEXT
+         JSR GETERR
+         LDA #3
+         RTS 
+CLR
+         LDX #31
+         LDA #0
+SPTL3
+         STA MESS,X
+         DEX 
+         BPL SPTL3
+         RTS 
+INSR
+         JSR CLR
+         LDX #0
+         LDY #7
+SPTL4
+         LDA INSOURCE,X
+         STA MESS,Y
+         INX 
+         INY 
+         CPX #18
+         BNE SPTL4
+         RTS 
+INDS
+         JSR CLR
+         LDX #0
+         LDY #4
+SPTL5
+         LDA INDEST,X
+         STA MESS,Y
+         INX 
+         INY 
+         CPX #23
+         BNE SPTL5
+         RTS 
+HEX      ;           ◊†A†Ã…√⁄¬¡†ÿŸ†¡ƒ“
+         STX ADRH
+         STY ADRH+1
+         PHA 
+         LSR A
+         LSR A
+         LSR A
+         LSR A
+         TAX 
+         LDA TBHEX,X
+         LDY #0
+         STA (ADRH),Y
+         PLA 
+         AND #$0F
+         TAX 
+         LDA TBHEX,X
+         INY 
+         STA (ADRH),Y
+         RTS 
+TBHEX    .SBYTE "0123456789ABCDEF"
+SSTARTS  ;           ¡≠∞†“†±†◊
+         BEQ SREA
+         CLC 
+         ADC #16
+SREA
+         TAX 
+         LDY #0
+SPTL7    LDA STARTS,X
+         STA STSHOW,Y
+         INX 
+         INY 
+         CPY #17
+         BNE SPTL7
+         RTS 
+DOSHOW
+         STA SMIEC
+         ASL A
+         CLC 
+         ADC SMIEC
+         TAX 
+         LDY #0
+RPTL4    LDA NOYES,X
+         STA WDOS,Y
+         INX 
+         INY 
+         CPY #3
+         BNE RPTL4
+         RTS 
+BUFBIG
+         JSR RAMKA
+         JMP LONGRAMKA
+BUFSMALL
+         JSR RAMKA
+         JMP SHORTRAMKA
+PUTILL
+         LDA # <TILL
+         STA EDL
+         LDA # >TILL
+         STA EDL+1
+         RTS 
+SECNUM
+         LDA SEC
+         LDX # <TILL+10
+         LDY # >TILL+10
+         JSR HEX
+         LDA SEC+1
+         AND #$0F
+         TAX 
+         LDA TBHEX,X
+         STA TILL+9
+         RTS 
+TRREAD
+         LDX #0
+         LDA TRACK
+         CMP #100
+         BCC MN100
+         SBC #100
+         LDX #$11
+MN100
+         STX TILL+23
+         JSR DZIEL10
+         TAY 
+         LDA TBHEX,X
+         STA TILL+24
+         LDA TBHEX,Y
+         STA TILL+25
+         RTS 
+TRWRIT
+         LDX #0
+         LDA TRACK2
+         CMP #100
+         BCC MN100.2
+         SBC #100
+         LDX #$11
+MN100.2
+         STX TILL+29
+         JSR DZIEL10
+         TAY 
+         LDA TBHEX,X
+         STA TILL+30
+         LDA TBHEX,Y
+         STA TILL+31
+         RTS 
+SHFOR
+         ASL A
+         STA SMIEC
+         ASL A
+         CLC 
+         ADC SMIEC
+         TAX 
+         LDY #0
+SPTL0    LDA FORMATS,X
+         STA FORMS,Y
+         INX 
+         INY 
+         CPY #6
+         BNE SPTL0
+         RTS 
+ANSHOW
+         LDX #14
+RPTL7    LDA ANCOPY,X
+         STA ANOTH,X
+         DEX 
+         BPL RPTL7
+         RTS 
+;------
+FRMTSH
+         LDX #14
+RPTL8    LDA FRMT,X
+         STA ANOTH,X
+         DEX 
+         BPL RPTL8
+         LDA FORM
+         JMP SHFOR
+MVDONE
+         LDX #$10
+MVD      LDA DONE,X
+         STA STSHOW,X
+         DEX 
+         BPL MVD
+         RTS 
+;MIZINSKI
+;
+;
+;PINC = PBUF+$0100
+SHOWDL
+         LDA # <FULLDL
+         STA DLCL
+         LDA # >FULLDL
+         STA DLCL+1
+         RTS 
+HIDEDL
+         LDA # <EMPTDL
+         STA DLCL
+         LDA # >EMPTDL
+         STA DLCL+1
+         RTS 
+;ƒ⁄…≈Ã…†–“⁄†±∞
+DZIEL10
+         LDX #$FF
+CYKLON   INX 
+         CMP #10
+         BCC KUNIEC
+         SEC 
+         SBC #10
+         JMP CYKLON
+KUNIEC   RTS 
+PUTERR
+         LDA # <ERRO
+         STA EDL
+         LDA # >ERRO
+         STA EDL+1
+         RTS 
+GETERR
+         LDA SMIEC
+         STA EDL
+         LDA SMIEC2
+         STA EDL+1
+         RTS 
+PUTMESS
+         LDA # <MESS
+         STA EDL
+         LDA # >MESS
+         STA EDL+1
+         RTS 
+PUTFRMES
+         JSR CLR
+         LDX #11
+         LDY #0
+RPTL9
+         LDA FRMES,Y
+         STA MESS,X
+         INX 
+         INY 
+         CPY #10
+         BNE RPTL9
+         RTS 
+PUTDONE
+         JSR CLR
+         LDX #12
+         LDY #0
+TPTL0
+         LDA DONE,Y
+         STA MESS,X
+         INX 
+         INY 
+         CPY #8
+         BNE TPTL0
+         RTS 
+ERRSO
+         JSR POKEYIN
+         LDA #121
+         STA $D200
+         LDA #32+15
+         STA $D201
+         LDA #0
+         STA 20
+TPTL6    LDA 20
+         CMP #20
+         BNE TPTL6
+         LDA #0
+         STA $D200
+         STA $D201
+         RTS 
+KEYSO
+         JSR POKEYIN
+         LDA #121
+         STA $D200
+GLOS     LDX #$E0+8
+TPTL1    STX $D201
+         DEX 
+         JSR DELAY
+         CPX #$E0-1
+         BNE TPTL1
+         RTS 
+INSO
+         LDA #$E0+15
+         STA GLOS+1
+         JSR KEYSO
+         LDA #$E0+8
+         STA GLOS+1
+         RTS 
+DONESO
+         JSR POKEYIN
+         LDX #$E0+15
+TPTL3    STX $D201
+         LDA #72
+         STA $D200
+         DEX 
+         JSR DELAY
+         LDA #91
+         STA $D200
+         JSR DELAY
+         CPX #$E0-1
+         BNE TPTL3
+         RTS 
+DELAY
+         LDA 20
+TPTL7
+         CMP 20
+         BEQ TPTL7
+         RTS 
+POKEYIN
+         LDA #0
+         STA $D208
+         LDA #3
+         STA $D20F
+         RTS 
+DILES    .BYTE 90,90,90,0,0,0,180,246
+DOSCOPY
+         LDA #$52
+         STA $0302
+         LDA # <VT1
+         STA $0304
+         LDA # >VT1
+         STA $0305
+         LDA #$07
+         STA $0306
+         LDA SECLEN
+         STA $0308
+         LDA SECLEN+1
+         STA $0309
+         LDA # <360
+         STA $030A
+         LDA # >360
+         STA $030B
+J        LDA #$40
+         STA $0303
+         JSR $E459
+         BMI J
+         LDA GESTOSC
+         CMP #I
+         BCC POJED
+         LDX # >1024
+         LDY # <1024
+         CMP #A7     ;A 720
+         BCC POJED
+         BEQ AT3
+         BCS NIE2S
+AT3
+         LDX # >359
+         LDY # <359
+NIE2S
+         STX $030B
+         STY $030A
+         LDA # <VT2
+         STA $0304
+         LDA # >VT2
+         STA $0305
+         LDA #$40
+         STA $0303
+J2       JSR $E459
+         BMI J
+POJED
+DILE     LDY #90
+         LDA VT1+$0A,Y
+         EOR #$80
+         STA VTOC,Y
+         DEY 
+JESZCZE  LDA VT1+$0A,Y
+         EOR #$FF
+         STA VTOC,Y
+         DEY 
+         CPY #$FF
+         BNE JESZCZE
+S720
+         LDA GESTOSC
+         CMP #A3
+         BCS MYDOS
+         LDA VT1+$0A
+         AND #$80
+         EOR #$80
+; ORA VTOC+90
+         STA VTOC+90
+MYDOS
+         LDA GESTOSC
+         CMP #E
+         BEQ ZWIEKSZ
+         CMP #A7
+         BNE ENDDOS
+ATA720
+         LDY #114
+         LDA VT2,Y
+         EOR #$80
+         STA VTOC+246,Y
+         DEY 
+VP       LDA VT2,Y
+         EOR #$FF
+         STA VTOC+246,Y
+         DEY 
+         BPL VP
+         BMI ENDDOS
+ZWIEKSZ
+         LDA VTOC+128
+         ORA #$80
+         STA VTOC+128
+         LDY #84
+         LDX #90
+AGAIN    LDA VT2,Y
+         EOR #$FF
+         STA VTOC,X
+         INX 
+         INY 
+         CPY #$7A
+         BCC AGAIN
+ENDDOS   RTS 
+; .OPT LIST
+GENERATOR
+         LDX #0
+GEN      LDA $E000,X
+         STA $0400,X
+         LDA $E100,X
+         STA $0500,X
+         LDA $E200,X
+         STA $0600,X
+         LDA $E300,X
+         STA $0700,X
+         TXA 
+         BPL INX0
+         LDA #0
+         STA $00,X
+INX0     INX 
+         BNE GEN
+         RTS 
+IOPROC
+         LDA # <SECBUF
+         STA $0304
+         STA BCHAN1
+         STA BCHAN2
+         LDX # >SECBUF
+         STX $0305
+         STX BCHAN1+1
+         STX BCHAN2+1
+         LDY $0303
+         BPL CZYTANIE
+         JSR PRZEWALANIE
+         LDY BANKI
+         LDA CHTAB,Y
+         STA $D301
+         JMP $E459
+PRZEWALANIE
+         STX SKK2+2
+         STX SKK4+2
+         STA SKK2+1
+         STA SKK4+1
+         JSR ROMOFF
+         LDY #0
+         LDX SECLEN+1
+         BEQ SE
+SKK      LDA $FEDA,Y
+SKK2     STA $FEDA,Y
+         DEY 
+         BNE SKK
+         INC SKK+2
+         INC SKK2+2
+         DEX 
+         BNE SKK
+         BEQ T4
+SE
+         LDY #$7F
+SKK3     LDA $FEDA,Y
+SKK4     STA $FEDA,Y
+         DEY 
+         BPL SKK3
+T4       JMP ROMON
+CZYTANIE
+         STX SKK+2
+         STX SKK3+2
+         STA SKK+1
+         STA SKK3+1
+         JSR $E459
+         BMI RTSS
+         LDX SKK2+2
+         JSR CHECKER
+         LDA SKK2+1
+         JSR PRZEWALANIE
+         LDY BANKI
+         LDA CHTAB,Y
+         STA $D301
+         LDY #1
+RTSS     RTS 
+CHECKER
+         LDA OVER
+         BNE EXTBNK
+         CPX #$12
+         BCC BANCHN
+         CPX #$D0
+         BCC RST0
+         LDA TRBUF+1
+         CMP #$D8
+         BCS RST0
+         TXA 
+         CLC 
+         ADC #$08
+         TAX 
+RST0     RTS 
+BANCHN
+         LDY BANKS
+         LDA CHTAB,Y
+         STA $D301
+         TXA 
+         CLC 
+         ADC #$40
+         TAX 
+         RTS 
+EXTBNK
+         CPX #$80
+         BCC RST0
+         TXA 
+         SEC 
+         SBC #$40
+         TAX 
+         LDY BANKI
+         DEY 
+         LDA CHTAB,Y
+         STA $D301
+         RTS 
+CLEARSEC
+         LDY #$00
+         TYA 
+T5       STA END,Y
+         STA END+$0100,Y
+         INY 
+         BNE T5
+         LDA # <END
+         STA BCHAN1
+         STA BCHAN2
+         LDA # >END
+         STA BCHAN1+1
+         STA BCHAN2+1
+         RTS 
+PRZEPLOTY
+         LDA #$31
+         STA SPEED
+         LDA #$52
+         STA $0302
+         LDX #1
+         STX $030A
+         LDA #$80
+         STA $0308
+         DEX 
+         STX $0309
+         STX $030B
+         STX $0304
+         LDA #$C0
+         STA $0305
+         LDA #$07
+         STA $0306
+         LDA #$40
+         STA $0303
+         JSR $E459
+         LDA #0
+         STA 20
+         INC $030A
+         LDA #$40
+         STA $0303
+         JSR $E459
+         LDA 20
+         LDX #$33
+         STX SPEED
+         CMP #$0A
+         BCC PNORM
+         LDA #0
+PNORM
+         RTS 
+VTOC     *=  *+$0180
+END      =   $1C00   OD CALEJ STRONY
+SECBUF   =   END
+AA0      .OPT LIST
+         *=  738
+         .WORD JGEN

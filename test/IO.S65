@@ -1,0 +1,231 @@
+;*******************************
+;** PROCEDURY WEJSCIA-WYJSCIA **
+;** ------------------------- **
+;**     by Tomasz Liebich     **
+;** ------------------------- **
+;**       13.IV.1990 r.       **
+;*******************************
+;
+;
+         .TITLE "}    PROCEDURY WEJSCIA-WYJSCIA      by Tomasz Liebich  (c) 1990"
+         .MACRO OPEN 
+         .IF %0<4 .OR %0>5
+           .ERROR "OPEN"
+           .ELSE 
+           .IF %0=4
+             JMP OP1
+FILE         .BYTE %$4,$9B
+OP1          LDX # <[%1*16]
+             LDA #$03
+             STA $0342,X
+             LDA # <FILE
+             STA $0344,X
+             LDA # >FILE
+             STA $0345,X
+             .ELSE 
+             LDX # <[%1*16]
+             LDA #$03
+             STA $0342,X
+             LDA # <%4
+             STA $0344,X
+             LDA # >%4
+             STA $0345,X
+             .ENDIF 
+           LDA #$4C
+           STA $0348,X
+           LDA #$00
+           STA $0349,X
+           LDA # <%2
+           STA $034A,X
+           LDA # <%3
+           STA $034B,X
+           JSR $E456
+           .ENDIF 
+         .ENDM 
+;
+;
+         .MACRO CLOSE 
+         .IF %0<>1
+           .ERROR "CLOSE"
+           .ELSE 
+           LDX # <[%1*16]
+           LDA #$0C
+           STA $0342,X
+           JSR $E456
+           .ENDIF 
+         .ENDM 
+;
+;
+         .MACRO BGET 
+         .IF %0<>4
+           .ERROR "BGET"
+           .ELSE 
+           LDX # <[%1*16]
+           LDA #$07
+           STA $0342,X
+           .IF %4=0 .OR %4=2
+             LDA # <%2
+             STA $0344,X
+             LDA # >%2
+             STA $0345,X
+             .ELSE 
+             LDA %2
+             STA $0344,X
+             LDA %2+1
+             STA $0345,X
+             .ENDIF 
+           .IF %4=0 .OR %4=1
+             LDA # <%3
+             STA $0348,X
+             LDA # >%3
+             STA $0349,X
+             .ELSE 
+             LDA %3
+             STA $0348,X
+             LDA %3+1
+             STA $0349,X
+             .ENDIF 
+           JSR $E456
+           .ENDIF 
+         .ENDM 
+;
+;
+         .MACRO BPUT 
+         .IF %0<>4
+           .ERROR "BPUT"
+           .ELSE 
+           LDX # <[%1*16]
+           LDA #$0B
+           STA $0342,X
+           .IF %4=0 .OR %4=2
+             LDA # <%2
+             STA $0344,X
+             LDA # >%2
+             STA $0345,X
+             .ELSE 
+             LDA %2
+             STA $0344,X
+             LDA %2+1
+             STA $0345,X
+             .ENDIF 
+           .IF %4=0 .OR %4=1
+             LDA # <%3
+             STA $0348,X
+             LDA # >%3
+             STA $0349,X
+             .ELSE 
+             LDA %3
+             STA $0348,X
+             LDA %3+1
+             STA $0349,X
+             .ENDIF 
+           JSR $E456
+           .ENDIF 
+         .ENDM 
+;
+;
+         .MACRO GET 
+         .IF %0<>1
+           .ERROR "GET"
+           .ELSE 
+           LDX # <[%1*16]
+           LDA #$07
+           STA $0342,X
+           LDA #$00
+           STA $0348,X
+           STA $0349,X
+           JSR $E456
+           .ENDIF 
+         .ENDM 
+;
+;
+         .MACRO PUT 
+         .IF %0<>1
+           .ERROR "PUT"
+           .ELSE 
+           TAY 
+           LDX # <[%1*16]
+           LDA #$0B
+           STA $0342,X
+           LDA #$00
+           STA $0348,X
+           STA $0349,X
+           TYA 
+           JSR $E456
+           .ENDIF 
+         .ENDM 
+;
+;
+         .MACRO INPUT 
+         .IF %0<>4
+           .ERROR "INPUT"
+           .ELSE 
+           LDX # <[%1*16]
+           LDA #$05
+           STA $0342,X
+           .IF %4=0 .OR %4=2
+             LDA # <%2
+             STA $0344,X
+             LDA # >%2
+             STA $0345,X
+             .ELSE 
+             LDA %2
+             STA $0344,X
+             LDA %2+1
+             STA $0345,X
+             .ENDIF 
+           .IF %4=0 .OR %4=1
+             LDA # <%3
+             STA $0348,X
+             LDA # >%3
+             STA $0349,X
+             .ELSE 
+             LDA %3
+             STA $0348,X
+             LDA %3+1
+             STA $0349,X
+             .ENDIF 
+           JSR $E456
+           .ENDIF 
+         .ENDM 
+;
+;
+         .MACRO PRINT 
+         .IF %0<>4
+           .ERROR "PRINT"
+           .ELSE 
+           LDX # <[%1*16]
+           LDA #$09
+           STA $0342,X
+           .IF %4=0 .OR %4=2
+             LDA # <%2
+             STA $0344,X
+             LDA # >%2
+             STA $0345,X
+             .ELSE 
+             LDA %2
+             STA $0344,X
+             LDA %2+1
+             STA $0345,X
+             .ENDIF 
+           .IF %4=0 .OR %4=1
+             LDA # <%3
+             STA $0348,X
+             LDA # >%3
+             STA $0349,X
+             .ELSE 
+             LDA %3
+             STA $0348,X
+             LDA %3+1
+             STA $0349,X
+             .ENDIF 
+           JSR $E456
+           .ENDIF 
+         .ENDM 
+;print chan,adr,len,ax
+;ax=0 - 0 - #adr,#len
+;ax=1 - adr,#len
+;ax=2 - #adr,len
+;ax=3 - adr,len
+
+
