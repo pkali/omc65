@@ -7,8 +7,8 @@ It was used in several commercial games and a few demoscene prods.
 
 TODO
 
- - [ ] Compile under Linux
  - [ ] Translate Polish variable names to English
+ - [x] Compile under Linux
  - [ ] Make output files compatible with Altirra debugger
  - [ ] Develop test suite
  - [ ] Fix known bugs
