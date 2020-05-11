@@ -1033,7 +1033,7 @@ int evaluate(int pocz, int ile, int16_t *wynik) {
           op = '!';
 
       default:
-        if ((lev = level(op)) <= last && !unarny(op) && os[osp - 1] != '[')
+        if ((lev = level(op)) <= last && !unarny(op) && osp > 0 && os[osp - 1] != '[')
           calc(&nsp, &osp);
         if (lev < last && !unarny(op)) {
           while (osp > 0 && os[osp - 1] != '[' && level(os[osp]) >= lev) {
