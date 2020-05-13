@@ -17,7 +17,8 @@ g++ --std=c++13 OMC_MAIN.C -o omc
 g++ --std=c++14 OMC_MAIN.C -o omc
 g++ --std=c++11 OMC_MAIN.C -o omc
 g++ --std=c++03 OMC_MAIN.C -o omc
-g++ --std=c++98 OMC_MAIN.C -o omc```
+g++ --std=c++98 OMC_MAIN.C -o omc
+```
 
 TODO
 
