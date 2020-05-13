@@ -1,7 +1,9 @@
 # omc65
- Mac65 compatible 6502 crossassembler
+Our Macro Crossassembler for 6502
 
-omc54 was originally coded for Atari ST in PURE-C around 1990-1991.
+Mac65 compatible 6502 crossassembler
+
+omc54 was originally coded for Atari ST at in PURE-C around 1990-1991.
 Later it was ported to win32.
 It was used in several commercial games and a few demoscene prods.
 
