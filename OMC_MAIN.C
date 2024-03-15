@@ -1,7 +1,7 @@
 // compiled with gcc (Ubuntu 5.5.0-12ubuntu1~16.04) 5.5.0 20171010
 // gcc -x c  OMC_MAIN.C -o omc
 /*#define atariST*/
-#define buflen 120
+#define BUFLEN 120
 #define asem_col 19
 #define _MAX_PATH 260        // this is a hack to replace win32 value
 #define strnicmp strncasecmp // this is a hack to replace deprecated strnicmp
@@ -19,10 +19,9 @@ char crt = 13, tab = '\t';
 #include <ctype.h>
 #include <fcntl.h>
 #include <stdint.h>
-#include <termios.h>
 #include <unistd.h>
 
-long filelength(FILE *f) { // don't use that. Learn POSIX API
+long myfilelength(FILE *f) { // don't use that. Learn POSIX API
   long prev = ftell(f);
   fseek(f, 0L, SEEK_END);
   long sz = ftell(f);
@@ -106,7 +105,7 @@ char mnem_hash_tab[0x200];
   inicjowana przez init_tabs
 */
 
-char line_bufor[buflen + 2], strbuf[buflen];
+char line_bufor[BUFLEN + 2], strbuf[BUFLEN];
 char *bufor; /*wsk. bufor linii*/
 
 uint16_t bptr; /* wsk. bajtu w buforze wyjsciowy */
@@ -122,7 +121,7 @@ int objflg, listflg, errflg, ejectflg, mlistflg, clistflg, numflg, xrefflg;
 int lstf; /*znacznik czy listowac ,ust. przez param. assembl.*/
 int err_num_only;
 char set_dat[5], tab_dat[3];
-char title_dat[buflen], page_dat[buflen];
+char title_dat[BUFLEN], page_dat[BUFLEN];
 int asmflg;        /*1-asemblowac 0 nie ,zmieniany przez .if .else .endif */
 int i_stack[15];   /* stos komend dla asemblacji warunkowej */
 int asm_stack[15]; /* stos decyzji dla asemblacji warunkowej */
@@ -1186,7 +1185,7 @@ int cnt_byte(void)
     default:
       if (c == '%' && bufor[col + 1] == '$' && inside_macro) { /*text parameter*/
         col += 2;
-        if (paramnr(&col, buflen, &wart) && wart + first_par < psp) {
+        if (paramnr(&col, BUFLEN, &wart) && wart + first_par < psp) {
           if (is_param[first_par + wart] == 2)
             ile += param[first_par + wart];
           else
@@ -1599,7 +1598,7 @@ void put_byte(int type)
     col++;
   if (c == '+') {
     col++;
-    if (!getnumber(&col, buflen, &add) || bufor[col++] != ',') {
+    if (!getnumber(&col, BUFLEN, &add) || bufor[col++] != ',') {
       error("bad offset in .byte");
       return;
     }
@@ -1634,7 +1633,7 @@ void put_byte(int type)
     default:
       if (c == '%' && bufor[col + 1] == '$' && inside_macro) { /*text parameter*/
         col += 2;
-        if (!paramnr(&col, buflen, &wart))
+        if (!paramnr(&col, BUFLEN, &wart))
           error("Bad text macro parameter");
         else {
           cnt = param[par = first_par + wart];
@@ -2063,7 +2062,7 @@ void include(int what) {
       }
       break;
     default: /*incbin*/
-      flen = filelength(plik);
+      flen = myfilelength(plik);
       if (phase == 2)
         while (flen--)
           putbyte(fgetc(plik) & 0xff);
@@ -2085,7 +2084,7 @@ void rept(int ph) {
   }
   while ((c = bufor[col]) == ' ' || c == tab)
     col++;
-  if (!getnumber(&col, buflen, (int16_t *)&cnt_rept)) {
+  if (!getnumber(&col, BUFLEN, (int16_t *)&cnt_rept)) {
     if (ph)
       error("bad syntax");
     return;
@@ -2141,10 +2140,10 @@ void err_tit_pag(char what)
         error(text);
         break;
       case 1:
-        memmove(title_dat, text, buflen);
+        memmove(title_dat, text, BUFLEN);
         break;
       case 2:
-        memmove(page_dat, text, buflen);
+        memmove(page_dat, text, BUFLEN);
         break;
       }
       bufor[col] = c;
@@ -2230,11 +2229,11 @@ int readln(void) {
   int i;
   i = 0;
   prn_lin = 1;
-  if (fgets(line_bufor, buflen, source) == NULL) {
+  if (fgets(line_bufor, BUFLEN, source) == NULL) {
     line_bufor[0] = crt;
     return 0;
   };
-  while ((c = line_bufor[i]) != crt && c != lnf && c && i < buflen - 2)
+  while ((c = line_bufor[i]) != crt && c != lnf && c && i < BUFLEN - 2)
     i++;
   line_bufor[i] = crt;
   line_bufor[i + 1] = lnf;
