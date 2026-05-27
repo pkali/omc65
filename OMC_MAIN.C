@@ -3043,7 +3043,7 @@ int main(int argc, const char *argv[]) {
           k = j;
       }
 
-      memcpy(&dstpth[k], ".COM", 5);
+      memcpy(&dstpth[k], ".xex", 5);
     } else if (!fatal) {
       param = (char *)argv[i];
       for (j = 0; (dstpth[j] = param[j]) != 0; j++)

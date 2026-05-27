@@ -1,0 +1,3 @@
+*= $6000
+ LSR A;comment after operand
+ RTS

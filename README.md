@@ -10,8 +10,8 @@ It was used in several commercial games and a few demoscene prods.
 The crossassembler has been modernized to work with the current C and C++ compilers and reformatted with clang-format-11 (LLVM style).
 
 Compilation:
-```gcc --x c OMC_MAIN.C  -o omc
-gcc --std=gnu11 --x c OMC_MAIN.C  -o omc
+```gcc -x c OMC_MAIN.C -o omc
+gcc --std=gnu11 -x c OMC_MAIN.C -o omc
 
 g++ OMC_MAIN.C  -o omc
 g++ --std=c++17 OMC_MAIN.C -o omc
@@ -20,6 +20,16 @@ g++ --std=c++14 OMC_MAIN.C -o omc
 g++ --std=c++11 OMC_MAIN.C -o omc
 g++ --std=c++03 OMC_MAIN.C -o omc
 g++ --std=c++98 OMC_MAIN.C -o omc
+```
+
+Default output extension:
+
+- If destination is not provided, assembler now writes `.xex` by default.
+
+Milestone 0 baseline tests:
+
+```bash
+./test/run_milestone0.sh
 ```
 
 TODO

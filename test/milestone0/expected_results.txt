@@ -1,0 +1,13 @@
+# Milestone 0 baseline expectations
+# format: NAME | EXPECTATION
+
+lsr_comment | exit=0 | bytes=4A60
+zp_y | exit=0 | bytes=B61060
+indirect_valid | exit=0 | bytes=B122A12260
+indirect_invalid | exit=1 | stderr_or_stdout_contains="can't evaluate expression"
+
+IO.S65 | exit=0
+MK720.S65 | exit=0
+MNOZ88.S65 | exit=0
+SHORTSYS.S65 | exit=0
+test.s65 | exit=1 | stderr_or_stdout_contains="can't evaluate expression"
